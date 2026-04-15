@@ -1,0 +1,86 @@
+:host {
+  display: block;
+  height: 100vh;
+  width: 100vw;
+}
+
+.app-layout {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  position: relative;
+}
+
+// Static background (no animations for performance)
+.bg-effects {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse at top right, rgba(139, 92, 246, 0.07) 0%, transparent 50%),
+    radial-gradient(ellipse at bottom left, rgba(6, 182, 212, 0.05) 0%, transparent 50%),
+    radial-gradient(ellipse at center, rgba(236, 72, 153, 0.03) 0%, transparent 40%);
+}
+
+.bg-gradient-1,
+.bg-gradient-2,
+.bg-gradient-3,
+.noise-overlay {
+  display: none;
+}
+
+.main-content {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+// Settings FAB
+.settings-fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: rgba(25, 25, 40, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 50;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+
+  &:hover {
+    background: rgba(139, 92, 246, 0.15);
+    border-color: rgba(139, 92, 246, 0.3);
+    color: #8B5CF6;
+    transform: rotate(90deg);
+    box-shadow: 0 4px 25px rgba(139, 92, 246, 0.2);
+  }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  :host {
+    height: 100dvh;
+  }
+
+  .app-layout {
+    height: 100dvh;
+  }
+
+  .settings-fab {
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    right: 12px;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+  }
+}

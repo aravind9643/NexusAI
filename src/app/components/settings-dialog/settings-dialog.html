@@ -1,0 +1,259 @@
+<div class="dialog-overlay" (click)="cancel()">
+  <div class="dialog" (click)="$event.stopPropagation()">
+    <!-- Header -->
+    <div class="dialog-header">
+      <h2>Settings</h2>
+      <button class="close-btn" (click)="cancel()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab" [class.active]="activeTab() === 'providers'" (click)="activeTab.set('providers')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2L2 7L12 12L22 7L12 2Z"/>
+          <path d="M2 17L12 22L22 17"/>
+          <path d="M2 12L12 17L22 12"/>
+        </svg>
+        Providers
+      </button>
+      <button class="tab" [class.active]="activeTab() === 'general'" (click)="activeTab.set('general')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+        General
+      </button>
+      <button class="tab" [class.active]="activeTab() === 'analytics'" (click)="activeTab.set('analytics')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="20" x2="18" y2="10"/>
+          <line x1="12" y1="20" x2="12" y2="4"/>
+          <line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+        Analytics
+      </button>
+      <button class="tab" [class.active]="activeTab() === 'about'" (click)="activeTab.set('about')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="16" x2="12" y2="12"/>
+          <line x1="12" y1="8" x2="12.01" y2="8"/>
+        </svg>
+        About
+      </button>
+    </div>
+
+    <!-- Content -->
+    <div class="dialog-content">
+      @if (activeTab() === 'providers') {
+        <!-- Provider Cards -->
+        @for (provider of providers(); track provider.id) {
+          <div class="provider-card" [class.disabled]="!provider.enabled">
+            <div class="provider-card-header">
+              <div class="provider-card-title">
+                <label class="toggle small">
+                  <input type="checkbox" [ngModel]="provider.enabled" (ngModelChange)="updateProviderField(provider.id, 'enabled', $event)"/>
+                  <span class="toggle-slider"></span>
+                </label>
+                <input
+                  class="provider-name-input"
+                  [ngModel]="provider.name"
+                  (ngModelChange)="updateProviderField(provider.id, 'name', $event)"
+                />
+              </div>
+              <div class="provider-card-actions">
+                <button class="test-btn" (click)="testProvider(provider)" [disabled]="testingProvider() === provider.id">
+                  @if (testingProvider() === provider.id) {
+                    <div class="mini-spinner"></div>
+                  } @else {
+                    Test
+                  }
+                </button>
+                <button class="remove-btn" (click)="removeProvider(provider.id)" title="Remove">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="provider-card-body">
+              <div class="field-row">
+                <label>Base URL</label>
+                <input
+                  type="text"
+                  class="setting-input"
+                  [ngModel]="provider.baseUrl"
+                  (ngModelChange)="updateProviderField(provider.id, 'baseUrl', $event)"
+                  placeholder="https://api.example.com/v1"
+                />
+              </div>
+              @if (provider.type === 'openai-compatible') {
+                <div class="field-row">
+                  <label>API Key</label>
+                  <input
+                    type="password"
+                    class="setting-input"
+                    [ngModel]="provider.apiKey"
+                    (ngModelChange)="updateProviderField(provider.id, 'apiKey', $event)"
+                    placeholder="sk-..."
+                  />
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Add Provider -->
+        <div class="add-provider-section">
+          <span class="add-label">Add Provider</span>
+          <div class="preset-grid">
+            @for (preset of availablePresets; track preset.key) {
+              <button class="preset-btn" (click)="addProvider(preset.key)">
+                <span class="preset-icon">{{ preset.icon }}</span>
+                <span class="preset-name">{{ preset.name }}</span>
+              </button>
+            }
+          </div>
+        </div>
+      }
+
+      @if (activeTab() === 'general') {
+        <div class="settings-group">
+          <label class="setting-label">System Prompt</label>
+          <textarea
+            class="setting-textarea"
+            [ngModel]="settings().systemPrompt"
+            (ngModelChange)="updateSetting('systemPrompt', $event)"
+            placeholder="Set a custom system prompt..."
+            rows="4"
+          ></textarea>
+          <span class="setting-hint">This prompt will be sent as the system message for every conversation.</span>
+        </div>
+
+        <div class="settings-group">
+          <label class="setting-label">Temperature: {{ settings().temperature }}</label>
+          <input
+            type="range"
+            class="setting-range"
+            min="0"
+            max="2"
+            step="0.1"
+            [ngModel]="settings().temperature"
+            (ngModelChange)="updateSetting('temperature', +$event)"
+          />
+          <div class="range-labels">
+            <span>Precise (0)</span>
+            <span>Creative (2)</span>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <div class="toggle-row">
+            <div>
+              <label class="setting-label">Stream Responses</label>
+              <span class="setting-hint">Show responses as they are generated (word by word)</span>
+            </div>
+            <label class="toggle">
+              <input
+                type="checkbox"
+                [ngModel]="settings().streamResponses"
+                (ngModelChange)="updateSetting('streamResponses', $event)"
+              />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+      }
+
+      @if (activeTab() === 'analytics') {
+        <div class="analytics-content">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <span class="stat-value">{{ getUsageStats().totalConversations }}</span>
+              <span class="stat-label">Conversations</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-value">{{ getUsageStats().totalMessages }}</span>
+              <span class="stat-label">Messages</span>
+            </div>
+            <div class="stat-card accent">
+              <span class="stat-value">{{ getUsageStats().totalTokens | number }}</span>
+              <span class="stat-label">Total Tokens</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-value">{{ getUsageStats().avgSpeed }} tok/s</span>
+              <span class="stat-label">Avg Speed</span>
+            </div>
+          </div>
+
+          <div class="analytics-section">
+            <h4>Top Models by Token Usage</h4>
+            @for (entry of getUsageStats().topModels; track entry.model) {
+              <div class="model-usage-row">
+                <div class="model-usage-info">
+                  <span class="model-usage-name">{{ entry.model }}</span>
+                  <span class="model-usage-detail">{{ entry.messages }} responses · {{ entry.tokens | number }} tokens</span>
+                </div>
+                <div class="usage-bar-wrap">
+                  <div class="usage-bar" [style.width.%]="getUsageStats().totalTokens ? (entry.tokens / getUsageStats().totalTokens * 100) : 0"></div>
+                </div>
+              </div>
+            }
+            @if (getUsageStats().topModels.length === 0) {
+              <p class="no-data">No usage data yet. Start chatting!</p>
+            }
+          </div>
+        </div>
+      }
+
+      @if (activeTab() === 'about') {
+        <div class="about-content">
+          <div class="about-logo">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="url(#aboutGrad1)" stroke-width="2"/>
+              <path d="M2 17L12 22L22 17" stroke="url(#aboutGrad2)" stroke-width="2"/>
+              <path d="M2 12L12 17L22 12" stroke="url(#aboutGrad3)" stroke-width="2"/>
+              <defs>
+                <linearGradient id="aboutGrad1" x1="2" y1="2" x2="22" y2="12">
+                  <stop offset="0%" stop-color="#8B5CF6"/>
+                  <stop offset="100%" stop-color="#06B6D4"/>
+                </linearGradient>
+                <linearGradient id="aboutGrad2" x1="2" y1="17" x2="22" y2="22">
+                  <stop offset="0%" stop-color="#8B5CF6"/>
+                  <stop offset="100%" stop-color="#06B6D4"/>
+                </linearGradient>
+                <linearGradient id="aboutGrad3" x1="2" y1="12" x2="22" y2="17">
+                  <stop offset="0%" stop-color="#8B5CF6"/>
+                  <stop offset="100%" stop-color="#06B6D4"/>
+                </linearGradient>
+              </defs>
+            </svg>
+            <h3>NexusAI Chat</h3>
+            <span class="version">Version 2.0.0 — Multi-Provider</span>
+          </div>
+          <div class="about-description">
+            <p>A premium AI chat interface supporting multiple providers — Ollama, OpenRouter, OpenAI, Groq, and any OpenAI-compatible API.</p>
+            <div class="features-list">
+              <div class="feature-item"><span class="feature-icon">🦙</span><span>Ollama — Local AI with full privacy</span></div>
+              <div class="feature-item"><span class="feature-icon">🌐</span><span>OpenRouter — Access 200+ models</span></div>
+              <div class="feature-item"><span class="feature-icon">🤖</span><span>OpenAI — GPT-4o, o1, o3 and more</span></div>
+              <div class="feature-item"><span class="feature-icon">⚡</span><span>Groq — Ultra-fast inference</span></div>
+              <div class="feature-item"><span class="feature-icon">🔧</span><span>Any OpenAI-compatible endpoint</span></div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Footer -->
+    <div class="dialog-footer">
+      <button class="cancel-btn" (click)="cancel()">Cancel</button>
+      <button class="save-btn" (click)="save()">Save Changes</button>
+    </div>
+  </div>
+</div>

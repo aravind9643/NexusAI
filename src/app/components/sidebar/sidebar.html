@@ -1,0 +1,190 @@
+<aside class="sidebar" [class.collapsed]="isCollapsed()">
+  <!-- Header -->
+  <div class="sidebar-header">
+    <div class="logo" *ngIf="!isCollapsed()">
+      <div class="logo-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="url(#grad1)" stroke-width="2"/>
+          <path d="M2 17L12 22L22 17" stroke="url(#grad2)" stroke-width="2"/>
+          <path d="M2 12L12 17L22 12" stroke="url(#grad3)" stroke-width="2"/>
+          <defs>
+            <linearGradient id="grad1" x1="2" y1="2" x2="22" y2="12">
+              <stop offset="0%" stop-color="#8B5CF6"/><stop offset="100%" stop-color="#06B6D4"/>
+            </linearGradient>
+            <linearGradient id="grad2" x1="2" y1="17" x2="22" y2="22">
+              <stop offset="0%" stop-color="#8B5CF6"/><stop offset="100%" stop-color="#06B6D4"/>
+            </linearGradient>
+            <linearGradient id="grad3" x1="2" y1="12" x2="22" y2="17">
+              <stop offset="0%" stop-color="#8B5CF6"/><stop offset="100%" stop-color="#06B6D4"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <span class="logo-text">NexusAI</span>
+    </div>
+    <button class="collapse-btn" (click)="toggleCollapse()" [title]="isCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <line x1="3" y1="12" x2="21" y2="12"/>
+        <line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- New Chat Button -->
+  <button class="new-chat-btn" (click)="newChat()" [title]="isCollapsed() ? 'New Chat' : ''">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="12" y1="5" x2="12" y2="19"/>
+      <line x1="5" y1="12" x2="19" y2="12"/>
+    </svg>
+    <span *ngIf="!isCollapsed()">New Chat</span>
+  </button>
+
+  <!-- Search -->
+  <div class="search-box" *ngIf="!isCollapsed()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="11" cy="11" r="8"/>
+      <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+    <input
+      type="text"
+      [placeholder]="searchMode() === 'title' ? 'Search chats...' : 'Search in messages...'"
+      [ngModel]="searchQuery()"
+      (ngModelChange)="searchQuery.set($event)"
+    />
+    <button class="search-mode-btn" (click)="toggleSearchMode()" [title]="searchMode() === 'title' ? 'Search in messages' : 'Search by title'">
+      @if (searchMode() === 'title') {
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+        </svg>
+      } @else {
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+      }
+    </button>
+  </div>
+
+  <!-- Conversations List -->
+  <div class="conversations-list" *ngIf="!isCollapsed()">
+    <div class="list-header">
+      <span>Recent Chats</span>
+      <div class="list-actions">
+        <button class="icon-btn" (click)="importChats()" title="Import chats">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+        </button>
+        <button class="icon-btn" (click)="exportChats()" title="Export chats" *ngIf="chatService.conversations().length > 0">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+        </button>
+        <button class="icon-btn delete" (click)="clearAll()" *ngIf="chatService.conversations().length > 0" title="Clear all">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="conversation-items">
+      @for (conv of filteredConversations(); track conv.id) {
+        <div
+          class="conversation-item"
+          [class.active]="conv.id === chatService.activeConversationId()"
+          (click)="selectConversation(conv)"
+        >
+          @if (editingId() === conv.id) {
+            <div class="edit-title" (click)="$event.stopPropagation()">
+              <input
+                type="text"
+                [ngModel]="editTitle()"
+                (ngModelChange)="editTitle.set($event)"
+                (keyup.enter)="saveRename(conv.id)"
+                (keyup.escape)="cancelRename()"
+                (blur)="saveRename(conv.id)"
+                class="edit-input"
+                autofocus
+              />
+            </div>
+          } @else if (showDeleteConfirm() === conv.id) {
+            <div class="delete-confirm" (click)="$event.stopPropagation()">
+              <span>Delete?</span>
+              <button class="confirm-yes" (click)="deleteConversation(conv.id)">Yes</button>
+              <button class="confirm-no" (click)="cancelDelete()">No</button>
+            </div>
+          } @else {
+            <div class="conv-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+            </div>
+            <div class="conv-info">
+              <span class="conv-title">{{ conv.title }}</span>
+              <span class="conv-meta">{{ getTimeAgo(conv.updatedAt) }}</span>
+            </div>
+            <div class="conv-actions">
+              <button class="action-btn" (click)="startRename(conv, $event)" title="Rename">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+              </button>
+              <button class="action-btn" (click)="downloadMarkdown(conv.id, $event)" title="Download as Markdown">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+              </button>
+              <button class="action-btn delete" (click)="confirmDelete(conv.id, $event)" title="Delete">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"/>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                </svg>
+              </button>
+            </div>
+          }
+        </div>
+      }
+
+      @if (filteredConversations().length === 0) {
+        <div class="empty-state">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+          <p>No conversations yet</p>
+          <p class="sub">Start a new chat to begin</p>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Collapsed icons -->
+  @if (isCollapsed()) {
+    <div class="collapsed-conversations">
+      @for (conv of chatService.sortedConversations().slice(0, 8); track conv.id) {
+        <button
+          class="collapsed-conv-btn"
+          [class.active]="conv.id === chatService.activeConversationId()"
+          (click)="selectConversation(conv)"
+          [title]="conv.title"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+        </button>
+      }
+    </div>
+  }
+</aside>
+
+<!-- Mobile overlay when sidebar is open -->
+<div class="sidebar-overlay" *ngIf="!isCollapsed()" (click)="toggleCollapse()"></div>
