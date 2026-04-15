@@ -23,6 +23,29 @@
         </svg>
       </button>
 
+      <button class="options-btn" (click)="showChatOptions.set(!showChatOptions())" title="Chat Options">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+
+      @if (showChatOptions()) {
+        <div class="dropdown-backdrop" (click)="showChatOptions.set(false)"></div>
+        <div class="options-dropdown">
+          <div class="dropdown-header">Chat Options</div>
+          <div class="option-item">
+            <label>System Prompt (Override)</label>
+            <textarea 
+              [ngModel]="activeConversation()?.systemPrompt" 
+              (ngModelChange)="updateChatSystemPrompt($event)"
+              placeholder="e.g. You are a helpful Python tutor..."
+              rows="3"
+            ></textarea>
+            <p class="option-hint">Leave blank to use global setting</p>
+          </div>
+        </div>
+      }
+
       @if (showModelSelector()) {
         <div class="dropdown-backdrop" (click)="showModelSelector.set(false)"></div>
         <div class="model-dropdown" id="model-dropdown">
@@ -168,14 +191,28 @@
 
   <!-- Input Area -->
   <div class="input-area">
+    @if (attachedImages().length > 0) {
+      <div class="attachment-preview">
+        @for (img of attachedImages(); track $index) {
+          <div class="preview-item">
+            <img [src]="img" alt="Attachment Preview">
+            <button class="remove-preview" (click)="removeImage($index)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+        }
+      </div>
+    }
+
     <div class="input-container">
       <textarea
         #messageInput
         class="message-input"
-        [ngModel]="inputText()"
-        (ngModelChange)="inputText.set($event)"
-        (keydown)="handleKeydown($event)"
+        [(ngModel)]="inputText"
         (input)="autoResize($event)"
+        (keydown)="handleKeydown($event)"
         placeholder="Message NexusAI..."
         rows="1"
         [disabled]="chatService.isGenerating()"
@@ -183,12 +220,12 @@
       ></textarea>
       <div class="input-actions">
         <!-- File attachment -->
-        <button class="input-icon-btn" (click)="triggerFileUpload()" title="Attach file" [disabled]="chatService.isGenerating()">
+        <button class="input-icon-btn" (click)="triggerFileUpload()" title="Attach file or image" [disabled]="chatService.isGenerating()">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
           </svg>
         </button>
-        <input #fileInput type="file" (change)="handleFileAttach($event)" style="display:none" accept=".txt,.md,.json,.csv,.py,.js,.ts,.html,.css,.xml,.yaml,.yml,.log"/>
+        <input #fileInput type="file" (change)="handleFileAttach($event)" style="display:none" accept=".txt,.md,.json,.csv,.py,.js,.ts,.html,.css,.xml,.yaml,.yml,.log,image/*" multiple/>
 
         <!-- Voice input -->
         <button

@@ -2,6 +2,14 @@
   <!-- Content -->
   <div class="message-content">
     <div class="message-body">
+      @if (message.images && message.images.length > 0) {
+        <div class="message-images">
+          @for (img of message.images; track $index) {
+            <img [src]="img" alt="Attached Image" class="message-image" (click)="openImageFull(img)">
+          }
+        </div>
+      }
+
       @if (message.role === 'assistant') {
         @if (message.content) {
           <div class="markdown-content" [innerHTML]="message.content | markdown"></div>

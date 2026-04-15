@@ -53,6 +53,33 @@
   overflow-wrap: break-word;
 }
 
+.message-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+
+  .message.user & {
+    justify-content: flex-end;
+  }
+}
+
+.message-image {
+  max-width: 300px;
+  max-height: 400px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  object-fit: cover;
+
+  &:hover {
+    transform: scale(1.02);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+}
+
 .user-text {
   white-space: pre-wrap;
 }

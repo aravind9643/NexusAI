@@ -647,6 +647,163 @@
   letter-spacing: 0.5px;
 }
 
+.models-manager {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.pull-model-box {
+  background: rgba(139, 92, 246, 0.05);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 12px;
+  padding: 16px;
+
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #8B5CF6;
+    margin-bottom: 12px;
+  }
+}
+
+.pull-input-group {
+  display: flex;
+  gap: 12px;
+
+  .setting-input {
+    margin-bottom: 0;
+    flex: 1;
+  }
+}
+
+.pull-btn {
+  padding: 8px 16px;
+  background: #8B5CF6;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  
+  &:hover:not(:disabled) {
+    background: #9b6ff6;
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.pull-progress-container {
+  margin-top: 16px;
+}
+
+.pull-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-bottom: 8px;
+  
+  .pull-status {
+    color: rgba(255, 255, 255, 0.5);
+  }
+}
+
+.progress-bar-bg {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(to right, #8B5CF6, #06B6D4);
+  transition: width 0.3s ease;
+}
+
+.installed-models-section {
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 12px;
+  }
+}
+
+.installed-models-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.model-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+}
+
+.model-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.model-item-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.model-item-detail {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.delete-model-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  color: #EF4444;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:hover:not(:disabled) {
+    background: #EF4444;
+    color: white;
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+  }
+}
+
+.empty-models {
+  text-align: center;
+  padding: 24px;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 13px;
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
 .analytics-section {
   h4 {
     font-size: 13px;

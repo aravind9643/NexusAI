@@ -150,7 +150,7 @@ export class ProviderService {
   async *streamChat(
     providerId: string,
     model: string,
-    messages: { role: string; content: string }[],
+    messages: { role: string; content: string; images?: string[] }[],
     temperature: number,
     abortSignal?: AbortSignal
   ): AsyncGenerator<{ content: string; done: boolean; stats?: any }> {
@@ -167,7 +167,7 @@ export class ProviderService {
   private async *streamOllamaChat(
     provider: ProviderConfig,
     model: string,
-    messages: { role: string; content: string }[],
+    messages: { role: string; content: string; images?: string[] }[],
     temperature: number,
     abortSignal?: AbortSignal
   ): AsyncGenerator<{ content: string; done: boolean; stats?: any }> {
@@ -234,10 +234,27 @@ export class ProviderService {
   private async *streamOpenAIChat(
     provider: ProviderConfig,
     model: string,
-    messages: { role: string; content: string }[],
+    messages: { role: string; content: string; images?: string[] }[],
     temperature: number,
     abortSignal?: AbortSignal
   ): AsyncGenerator<{ content: string; done: boolean; stats?: any }> {
+    const formattedMessages = messages.map(msg => {
+      if (msg.images && msg.images.length > 0) {
+        const content: any[] = [{ type: 'text', text: msg.content }];
+        msg.images.forEach(img => {
+          // Detect mime type or default to image/jpeg
+          const mimeType = img.startsWith('data:') ? img.split(';')[0].split(':')[1] : 'image/jpeg';
+          const base64 = img.includes('base64,') ? img.split('base64,')[1] : img;
+          content.push({
+            type: 'image_url',
+            image_url: { url: `data:${mimeType};base64,${base64}` }
+          });
+        });
+        return { role: msg.role, content };
+      }
+      return { role: msg.role, content: msg.content };
+    });
+
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
@@ -255,7 +272,7 @@ export class ProviderService {
       headers,
       body: JSON.stringify({
         model,
-        messages,
+        messages: formattedMessages,
         stream: true,
         temperature,
       }),
@@ -416,11 +433,59 @@ export class ProviderService {
   }
 
   private formatOpenAIModelName(id: string): string {
-    // "anthropic/claude-3.5-sonnet" → "Claude 3.5 Sonnet"
     const parts = id.split('/');
     const name = parts[parts.length - 1];
     return name
       .replace(/-/g, ' ')
       .replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+
+  async deleteOllamaModel(providerId: string, modelName: string): Promise<void> {
+    const provider = this.getProviderById(providerId);
+    if (!provider) throw new Error('Provider not found');
+
+    const response = await fetch(`${provider.baseUrl}/api/delete`, {
+      method: 'DELETE',
+      body: JSON.stringify({ name: modelName }),
+    });
+
+    if (!response.ok) throw new Error(`Failed to delete model: ${response.statusText}`);
+    await this.fetchAllModels();
+  }
+
+  async *pullOllamaModel(providerId: string, modelName: string): AsyncIterator<{ status: string; completed?: number; total?: number }> {
+    const provider = this.getProviderById(providerId);
+    if (!provider) throw new Error('Provider not found');
+
+    const response = await fetch(`${provider.baseUrl}/api/pull`, {
+      method: 'POST',
+      body: JSON.stringify({ name: modelName }),
+    });
+
+    if (!response.ok) throw new Error(`Failed to pull model: ${response.statusText}`);
+
+    const reader = response.body!.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.trim()) {
+          try {
+            const parsed = JSON.parse(line);
+            yield parsed;
+          } catch { /* skip */ }
+        }
+      }
+    }
+    
+    await this.fetchAllModels();
   }
 }

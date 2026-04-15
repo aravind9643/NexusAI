@@ -20,7 +20,11 @@ export class SettingsDialogComponent {
   chatService = inject(ChatService);
   toast = inject(ToastService);
 
-  activeTab = signal<'providers' | 'general' | 'analytics' | 'help' | 'about'>('providers');
+  activeTab = signal<'providers' | 'general' | 'models' | 'analytics' | 'help' | 'about'>('providers');
+  pullingModel = signal<string>('');
+  pullStatus = signal<string>('');
+  pullProgress = signal<number>(0);
+  isDeletingModel = signal<string>('');
   testingProvider = signal<string>('');
 
   // Local settings copy
@@ -156,5 +160,56 @@ export class SettingsDialogComponent {
       avgSpeed: durationCount > 0 ? Math.round((totalDuration / durationCount) * 10) / 10 : 0,
       topModels,
     };
+  }
+
+  // Model management
+  getOllamaModels() {
+    return this.providerService.models().filter(m => {
+      const p = this.providerService.getProviderById(m.providerId);
+      return p?.type === 'ollama';
+    });
+  }
+
+  async deleteModel(providerId: string, modelName: string) {
+    if (!confirm(`Are you sure you want to delete ${modelName}?`)) return;
+
+    this.isDeletingModel.set(modelName);
+    try {
+      await this.providerService.deleteOllamaModel(providerId, modelName);
+      this.toast.success('Model deleted');
+    } catch (e: any) {
+      this.toast.error(e.message || 'Failed to delete model');
+    } finally {
+      this.isDeletingModel.set('');
+    }
+  }
+
+  async pullModel(modelName: string) {
+    if (!modelName.trim()) return;
+
+    const provider = this.providerService.activeProvider();
+    if (!provider || provider.type !== 'ollama') {
+      this.toast.error('Ollama provider not active');
+      return;
+    }
+
+    this.pullingModel.set(modelName);
+    this.pullStatus.set('Initializing...');
+    this.pullProgress.set(0);
+
+    try {
+      const gen = this.providerService.pullOllamaModel(provider.id, modelName);
+      for await (const chunk of gen as any) {
+        this.pullStatus.set(chunk.status);
+        if (chunk.completed && chunk.total) {
+          this.pullProgress.set((chunk.completed / chunk.total) * 100);
+        }
+      }
+      this.toast.success(`Success: ${modelName} installed`);
+      this.pullingModel.set('');
+    } catch (e: any) {
+      this.toast.error(e.message || 'Failed to pull model');
+      this.pullingModel.set('');
+    }
   }
 }

@@ -35,8 +35,10 @@ export class ChatViewComponent implements AfterViewChecked {
   @ViewChild('fileInput') fileInput!: ElementRef;
 
   inputText = signal('');
+  attachedImages = signal<string[]>([]);
   modelSearchQuery = signal('');
   showModelSelector = signal(false);
+  showChatOptions = signal(false);
   showScrollBottom = signal(false);
   isRecording = signal(false);
   shouldScrollToBottom = true;
@@ -87,6 +89,16 @@ export class ChatViewComponent implements AfterViewChecked {
       event.preventDefault();
       this.messageInput?.nativeElement?.focus();
     }
+    // Ctrl+\: toggle sidebar
+    if (event.ctrlKey && event.key === '\\') {
+      event.preventDefault();
+      this.toggleSidebar();
+    }
+    // Alt+S: open chat options
+    if (event.altKey && event.key === 's') {
+      event.preventDefault();
+      this.showChatOptions.set(!this.showChatOptions());
+    }
   }
 
   ngAfterViewChecked(): void {
@@ -114,21 +126,65 @@ export class ChatViewComponent implements AfterViewChecked {
   }
 
   async sendMessage(): Promise<void> {
-    const text = this.inputText().trim();
-    if (!text || this.chatService.isGenerating()) return;
+    const currentText = this.inputText().trim();
+    const currentImages = [...this.attachedImages()];
+
+    if (!currentText && currentImages.length === 0) return;
+    if (this.chatService.isGenerating()) return;
+
+    // Handle Slash Commands
+    if (currentText.startsWith('/')) {
+      if (this.handleCommand(currentText)) {
+        this.inputText.set('');
+        return;
+      }
+    }
 
     this.inputText.set('');
+    this.attachedImages.set([]);
     this.shouldScrollToBottom = true;
 
     if (this.messageInput?.nativeElement) {
       this.messageInput.nativeElement.style.height = 'auto';
     }
 
-    await this.chatService.sendMessage(text);
+    await this.chatService.sendMessage(currentText, currentImages);
 
     setTimeout(() => {
       this.messageInput?.nativeElement?.focus();
     }, 100);
+  }
+
+  private handleCommand(text: string): boolean {
+    const [cmd, ...args] = text.split(' ');
+    const params = args.join(' ');
+
+    switch (cmd.toLowerCase()) {
+      case '/clear':
+        if (this.activeConversation()) {
+          this.chatService.updateConversation(this.activeConversation()!.id, { messages: [] });
+          this.toast.success('Chat cleared');
+        }
+        return true;
+      case '/delete':
+        if (this.activeConversation()) {
+          this.chatService.deleteConversation(this.activeConversation()!.id);
+          this.toast.success('Chat deleted');
+        }
+        return true;
+      case '/system':
+        if (this.activeConversation()) {
+          this.updateChatSystemPrompt(params);
+          this.toast.success('System prompt updated');
+        }
+        return true;
+      case '/model':
+        this.showModelSelector.set(true);
+        this.modelSearchQuery.set(params);
+        return true;
+      default:
+        return false;
+    }
   }
 
   handleKeydown(event: KeyboardEvent): void {
@@ -154,6 +210,13 @@ export class ChatViewComponent implements AfterViewChecked {
     }
     this.showModelSelector.set(false);
     this.modelSearchQuery.set('');
+  }
+
+  updateChatSystemPrompt(prompt: string): void {
+    const conv = this.activeConversation();
+    if (conv) {
+      this.chatService.updateConversation(conv.id, { systemPrompt: prompt });
+    }
   }
 
   getCurrentModel(): string {
@@ -330,24 +393,35 @@ export class ChatViewComponent implements AfterViewChecked {
 
   handleFileAttach(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) return;
+    if (!input.files?.length) return;
 
-    if (file.size > 1024 * 1024) {
-      this.toast.error('File too large (max 1MB)');
-      input.value = '';
-      return;
-    }
+    Array.from(input.files).forEach(file => {
+      if (file.size > 5 * 1024 * 1024) {
+        this.toast.error(`File too large: ${file.name} (max 5MB)`);
+        return;
+      }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const content = reader.result as string;
-      const prefix = `\n\n---\n📎 **${file.name}**\n\`\`\`\n${content}\n\`\`\`\n---\n`;
-      this.inputText.update((t) => t + prefix);
-      this.autoResizeInput();
-      this.toast.success(`Attached: ${file.name}`);
-    };
-    reader.readAsText(file);
+      const reader = new FileReader();
+      if (file.type.startsWith('image/')) {
+        reader.onload = () => {
+          this.attachedImages.update(prev => [...prev, reader.result as string]);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        reader.onload = () => {
+          const content = reader.result as string;
+          const prefix = `\n\n---\n📎 **${file.name}**\n\`\`\`\n${content}\n\`\`\`\n---\n`;
+          this.inputText.update((t) => t + prefix);
+          this.autoResizeInput();
+          this.toast.success(`Attached: ${file.name}`);
+        };
+        reader.readAsText(file);
+      }
+    });
     input.value = '';
+  }
+
+  removeImage(index: number): void {
+    this.attachedImages.update(prev => prev.filter((_, i) => i !== index));
   }
 }

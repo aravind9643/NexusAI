@@ -71,6 +71,13 @@
     <div class="list-header">
       <span>Recent Chats</span>
       <div class="list-actions">
+        <button class="icon-btn" (click)="addFolder()" title="Add folder">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+            <line x1="12" y1="11" x2="12" y2="17"/>
+            <line x1="9" y1="14" x2="15" y2="14"/>
+          </svg>
+        </button>
         <button class="icon-btn" (click)="importChats()" title="Import chats">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -95,77 +102,173 @@
     </div>
 
     <div class="conversation-items">
-      @for (conv of filteredConversations(); track conv.id) {
-        <div
-          class="conversation-item"
-          [class.active]="conv.id === chatService.activeConversationId()"
-          (click)="selectConversation(conv)"
-        >
-          @if (editingId() === conv.id) {
-            <div class="edit-title" (click)="$event.stopPropagation()">
-              <input
-                type="text"
-                [ngModel]="editTitle()"
-                (ngModelChange)="editTitle.set($event)"
-                (keyup.enter)="saveRename(conv.id)"
-                (keyup.escape)="cancelRename()"
-                (blur)="saveRename(conv.id)"
-                class="edit-input"
-                autofocus
-              />
-            </div>
-          } @else if (showDeleteConfirm() === conv.id) {
-            <div class="delete-confirm" (click)="$event.stopPropagation()">
-              <span>Delete?</span>
-              <button class="confirm-yes" (click)="deleteConversation(conv.id)">Yes</button>
-              <button class="confirm-no" (click)="cancelDelete()">No</button>
-            </div>
-          } @else {
-            <div class="conv-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-              </svg>
-            </div>
-            <div class="conv-info">
-              <span class="conv-title">{{ conv.title }}</span>
-              <span class="conv-meta">{{ getTimeAgo(conv.updatedAt) }}</span>
-            </div>
-            <div class="conv-actions">
-              <button class="action-btn" (click)="startRename(conv, $event)" title="Rename">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                </svg>
-              </button>
-              <button class="action-btn" (click)="downloadMarkdown(conv.id, $event)" title="Download as Markdown">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="7 10 12 15 17 10"/>
-                  <line x1="12" y1="15" x2="12" y2="3"/>
-                </svg>
-              </button>
-              <button class="action-btn delete" (click)="confirmDelete(conv.id, $event)" title="Delete">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="3 6 5 6 21 6"/>
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                </svg>
-              </button>
-            </div>
-          }
+      <!-- Inline Folder Adding -->
+      @if (isAddingFolder()) {
+        <div class="folder-input-row">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+          </svg>
+          <input 
+            #folderInput
+            type="text" 
+            [(ngModel)]="newFolderName" 
+            placeholder="Folder name..."
+            (keyup.enter)="confirmAddFolder()"
+            (keyup.escape)="cancelAddFolder()"
+            (blur)="cancelAddFolder()"
+          />
         </div>
       }
 
-      @if (filteredConversations().length === 0) {
-        <div class="empty-state">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-          </svg>
-          <p>No conversations yet</p>
-          <p class="sub">Start a new chat to begin</p>
+      <!-- Pinned -->
+      <div class="pinned-section" *ngIf="getPinnedConversations().length > 0">
+        <div class="section-label">Pinned</div>
+        @for (conv of getPinnedConversations(); track conv.id) {
+          <ng-container *ngTemplateOutlet="itemTemplate; context: { $implicit: conv }"></ng-container>
+        }
+      </div>
+
+      <!-- Folders -->
+      <div class="folders-section" *ngIf="chatService.folders().length > 0">
+        <div class="section-label">
+          <span>Folders</span>
+          <span class="folder-count">{{ chatService.folders().length }}</span>
+        </div>
+        @for (folder of chatService.folders(); track folder.id) {
+          <div class="folder-container" 
+               [class.drag-over]="dragOverFolderId() === folder.id"
+               (dragover)="onDragOverFolder($event, folder.id)"
+               (dragleave)="onDragLeaveFolder()"
+               (drop)="onDropToFolder($event, folder.id)">
+            <div class="folder-header" (click)="toggleFolder(folder.id)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="chevron" [class.rotated]="folder.isExpanded">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="folder-icon">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+              </svg>
+              <span class="folder-name">{{ folder.name }}</span>
+              <span class="folder-count">{{ getConversationsInFolder(folder.id).length }}</span>
+              <div class="folder-actions" (click)="$event.stopPropagation()">
+                <button class="icon-btn tiny" (click)="renameFolder(folder.id, $event)" title="Rename folder">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                  </svg>
+                </button>
+                <button class="icon-btn tiny delete" (click)="deleteFolder(folder.id, $event)" title="Delete folder">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            
+            @if (folder.isExpanded) {
+              <div class="folder-content">
+                @for (conv of getConversationsInFolder(folder.id); track conv.id) {
+                  <ng-container *ngTemplateOutlet="itemTemplate; context: { $implicit: conv }"></ng-container>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Uncategorized Recently -->
+      <div class="recent-section"
+           [class.drag-over]="isDraggingOverRecent()"
+           (dragover)="onDragOverRecent($event)"
+           (dragleave)="onDragLeaveRecent()"
+           (drop)="onDropToRecent($event)">
+        <div class="section-label">
+          <span>Recent</span>
+          <span class="folder-count">{{ getUncategorizedConversations().length }}</span>
+        </div>
+        @for (conv of getUncategorizedConversations(); track conv.id) {
+          <ng-container *ngTemplateOutlet="itemTemplate; context: { $implicit: conv }"></ng-container>
+        }
+      </div>
+    </div>
+  </div>
+
+  <ng-template #itemTemplate let-conv>
+    <div
+      class="conversation-item"
+      [class.active]="conv.id === chatService.activeConversationId()"
+      [class.dragging]="draggingId() === conv.id"
+      (click)="selectConversation(conv)"
+      draggable="true"
+      (dragstart)="onDragStart($event, conv.id)"
+      (dragend)="onDragEnd()"
+    >
+      @if (showDeleteConfirm() === conv.id) {
+        <div class="delete-confirm-state" (click)="$event.stopPropagation()">
+          <span class="delete-prompt">Delete entire chat?</span>
+          <div class="confirm-btns">
+            <button class="confirm-yes" (click)="deleteConversation(conv.id)">Delete</button>
+            <button class="confirm-no" (click)="cancelDelete()">Cancel</button>
+          </div>
+        </div>
+      } @else {
+        <div class="conv-icon">
+          @if (conv.isPinned) {
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none" style="color: #06B6D4;">
+              <path d="M7 6c0-1.1.9-2 2-2h6a2 2 0 0 1 2 2v8l3 3v2h-7v7l-1-1-1 1v-7H4v-2l3-3V6z"/>
+            </svg>
+          } @else {
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+          }
+        </div>
+        
+        <div class="conv-info">
+          @if (editingId() === conv.id) {
+            <input
+              type="text"
+              [ngModel]="editTitle()"
+              (ngModelChange)="editTitle.set($event)"
+              (keyup.enter)="saveRename(conv.id)"
+              (keyup.escape)="cancelRename()"
+              (blur)="saveRename(conv.id)"
+              (click)="$event.stopPropagation()"
+              class="edit-input"
+              autofocus
+            />
+          } @else {
+            <span class="conv-title">{{ conv.title }}</span>
+            <span class="conv-meta">{{ getTimeAgo(conv.updatedAt) }}</span>
+          }
+        </div>
+
+        <div class="conv-actions" (click)="$event.stopPropagation()" *ngIf="editingId() !== conv.id">
+          <div class="extra-menu-wrapper">
+            <button class="action-btn" title="More options">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/>
+              </svg>
+              <div class="more-dropdown">
+                <div class="drop-option" (click)="chatService.togglePin(conv.id)">
+                  {{ conv.isPinned ? 'Unpin' : 'Pin chat' }}
+                </div>
+                <div class="drop-divider"></div>
+                <div class="drop-option" (click)="openMoveModal(conv.id, $event)">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                  </svg>
+                  Move to Folder
+                </div>
+                <div class="drop-divider"></div>
+                <div class="drop-option" (click)="startRename(conv, $event)">Rename</div>
+                <div class="drop-option" (click)="downloadMarkdown(conv.id, $event)">Download MD</div>
+                <div class="drop-option danger" (click)="confirmDelete(conv.id, $event)">Delete</div>
+              </div>
+            </button>
+          </div>
         </div>
       }
     </div>
-  </div>
+  </ng-template>
 
   <!-- Collapsed icons -->
   @if (isCollapsed()) {
@@ -188,3 +291,34 @@
 
 <!-- Mobile overlay when sidebar is open -->
 <div class="sidebar-overlay" *ngIf="!isCollapsed()" (click)="toggleCollapse()"></div>
+
+<!-- Move to Folder Modal -->
+@if (movingConvId()) {
+  <div class="modal-overlay" (click)="closeMoveModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Move to Folder</h3>
+        <button class="close-btn" (click)="closeMoveModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="folder-select-list">
+          <button class="folder-select-item" (click)="confirmMoveToFolder()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            </svg>
+            None (Recent)
+          </button>
+          <div class="modal-divider"></div>
+          @for (f of chatService.folders(); track f.id) {
+            <button class="folder-select-item" (click)="confirmMoveToFolder(f.id)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+              </svg>
+              {{ f.name }}
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+}

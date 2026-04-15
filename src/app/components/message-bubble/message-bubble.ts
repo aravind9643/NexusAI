@@ -81,4 +81,11 @@ export class MessageBubbleComponent {
     const remainSec = Math.round(sec % 60);
     return `${min}m ${remainSec}s`;
   }
+
+  openImageFull(url: string): void {
+    const win = window.open();
+    if (win) {
+      win.document.write(`<img src="${url}" style="max-width:100%; height:auto;">`);
+    }
+  }
 }

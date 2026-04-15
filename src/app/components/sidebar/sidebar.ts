@@ -1,4 +1,4 @@
-import { Component, inject, signal, output } from '@angular/core';
+import { Component, inject, signal, output, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ChatService } from '../../services/chat.service';
@@ -23,6 +23,18 @@ export class SidebarComponent {
   showDeleteConfirm = signal<string | null>(null);
   searchMode = signal<'title' | 'content'>('title');
   contentSearchResults = signal<any[]>([]);
+  isAddingFolder = signal(false);
+  newFolderName = signal('');
+  movingConvId = signal<string | null>(null);
+  dragOverFolderId = signal<string | null>(null);
+  isDraggingOverRecent = signal(false);
+  draggingId = signal<string | null>(null);
+
+  @ViewChild('folderInput') set folderInput(el: ElementRef) {
+    if (el) {
+      setTimeout(() => el.nativeElement.focus(), 0);
+    }
+  }
 
   filteredConversations = () => {
     const query = this.searchQuery().toLowerCase();
@@ -139,5 +151,141 @@ export class SidebarComponent {
     if (hours < 24) return `${hours}h ago`;
     if (days < 7) return `${days}d ago`;
     return new Date(date).toLocaleDateString();
+  }
+
+  // Folder Methods
+  addFolder(): void {
+    this.isAddingFolder.set(true);
+    this.newFolderName.set('');
+  }
+
+  confirmAddFolder(): void {
+    const name = this.newFolderName().trim();
+    if (name) {
+      this.chatService.createFolder(name);
+      this.isAddingFolder.set(false);
+      this.newFolderName.set('');
+    }
+  }
+
+  cancelAddFolder(): void {
+    this.isAddingFolder.set(false);
+    this.newFolderName.set('');
+  }
+
+  openMoveModal(convId: string, event: Event): void {
+    event.stopPropagation();
+    this.movingConvId.set(convId);
+  }
+
+  closeMoveModal(): void {
+    this.movingConvId.set(null);
+  }
+
+  confirmMoveToFolder(folderId?: string): void {
+    const convId = this.movingConvId();
+    if (convId) {
+      this.chatService.updateConversation(convId, { folderId });
+      this.toast.success(folderId ? 'Moved to folder' : 'Moved to Recent');
+    }
+    this.closeMoveModal();
+  }
+
+  toggleFolder(id: string): void {
+    const folder = this.chatService.folders().find(f => f.id === id);
+    if (folder) {
+      this.chatService.updateFolder(id, { isExpanded: !folder.isExpanded });
+    }
+  }
+
+  // Drag & Drop
+  onDragStart(event: DragEvent, convId: string): void {
+    if (event.dataTransfer) {
+      this.draggingId.set(convId);
+      event.dataTransfer.setData('convId', convId);
+      event.dataTransfer.effectAllowed = 'move';
+      
+      // Ensure the drag ghost image is exactly the conversation item row
+      const target = (event.target as HTMLElement).closest('.conversation-item') as HTMLElement;
+      if (target) {
+        event.dataTransfer.setDragImage(target, 20, 20);
+      }
+    }
+  }
+
+  onDragEnd(): void {
+    this.draggingId.set(null);
+  }
+
+  onDragOverFolder(event: DragEvent, folderId: string): void {
+    event.preventDefault();
+    this.dragOverFolderId.set(folderId);
+  }
+
+  onDragLeaveFolder(): void {
+    this.dragOverFolderId.set(null);
+  }
+
+  onDropToFolder(event: DragEvent, folderId: string): void {
+    event.preventDefault();
+    this.dragOverFolderId.set(null);
+    const convId = event.dataTransfer?.getData('convId');
+    if (convId) {
+      this.chatService.updateConversation(convId, { folderId });
+      this.toast.success('Moved to folder');
+    }
+  }
+
+  onDragOverRecent(event: DragEvent): void {
+    event.preventDefault();
+    this.isDraggingOverRecent.set(true);
+  }
+
+  onDragLeaveRecent(): void {
+    this.isDraggingOverRecent.set(false);
+  }
+
+  onDropToRecent(event: DragEvent): void {
+    event.preventDefault();
+    this.isDraggingOverRecent.set(false);
+    const convId = event.dataTransfer?.getData('convId');
+    if (convId) {
+      this.chatService.updateConversation(convId, { folderId: undefined });
+      this.toast.success('Moved to Recent');
+    }
+  }
+
+  deleteFolder(id: string, event: Event): void {
+    event.stopPropagation();
+    if (confirm('Are you sure you want to delete this folder? Conversations will be moved out of the folder.')) {
+      this.chatService.deleteFolder(id);
+    }
+  }
+
+  renameFolder(id: string, event: Event): void {
+    event.stopPropagation();
+    const folder = this.chatService.folders().find(f => f.id === id);
+    if (!folder) return;
+    const name = prompt('Rename Folder:', folder.name);
+    if (name && name !== folder.name) {
+      this.chatService.updateFolder(id, { name });
+    }
+  }
+
+  getConversationsInFolder(folderId?: string): Conversation[] {
+    return this.filteredConversations().filter(c => c.folderId === folderId && !c.isPinned);
+  }
+
+  getPinnedConversations(): Conversation[] {
+    return this.filteredConversations().filter(c => c.isPinned);
+  }
+
+  getUncategorizedConversations(): Conversation[] {
+    // Return conversations that are neither in a folder nor pinned
+    return this.filteredConversations().filter(c => !c.folderId && !c.isPinned);
+  }
+
+  moveToFolder(convId: string, folderId?: string): void {
+    this.chatService.updateConversation(convId, { folderId });
   }
 }

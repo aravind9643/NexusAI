@@ -1,5 +1,5 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
-import { Conversation, ChatMessage } from '../models/chat.model';
+import { Conversation, ChatMessage, Folder } from '../models/chat.model';
 import { ProviderService } from './provider.service';
 
 @Injectable({
@@ -8,11 +8,13 @@ import { ProviderService } from './provider.service';
 export class ChatService {
   private providerService = inject(ProviderService);
   private storageKey = 'ollama-chat-conversations';
+  private foldersKey = 'ollama-chat-folders';
   private settingsKey = 'ollama-chat-settings';
   private lastModelKey = 'nexus-last-model';
   private abortController: AbortController | null = null;
 
   conversations = signal<Conversation[]>(this.loadConversations());
+  folders = signal<Folder[]>(this.loadFolders());
   activeConversationId = signal<string | null>(null);
   isGenerating = signal<boolean>(false);
   sidebarCollapsed = signal<boolean>(window.innerWidth <= 768);
@@ -68,18 +70,24 @@ export class ChatService {
     return [];
   }
 
+  private loadFolders(): Folder[] {
+    const stored = localStorage.getItem(this.foldersKey);
+    return stored ? JSON.parse(stored) : [];
+  }
+
   private saveConversations(): void {
     localStorage.setItem(this.storageKey, JSON.stringify(this.conversations()));
+    localStorage.setItem(this.foldersKey, JSON.stringify(this.folders()));
   }
 
   private generateId(): string {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
   }
 
-  createConversation(model?: string, providerId?: string): Conversation {
+  createConversation(model?: string, providerId?: string, folderId?: string): Conversation {
     const lastUsed = this.getLastUsedModel();
     const activeProvider = this.providerService.activeProvider();
-    
+
     const conversation: Conversation = {
       id: this.generateId(),
       title: 'New Chat',
@@ -88,11 +96,31 @@ export class ChatService {
       providerId: providerId || lastUsed?.providerId || activeProvider?.id || 'ollama-default',
       createdAt: new Date(),
       updatedAt: new Date(),
+      folderId
     };
     this.conversations.update((convs) => [conversation, ...convs]);
     this.activeConversationId.set(conversation.id);
     this.saveConversations();
     return conversation;
+  }
+
+  // Folder Methods
+  createFolder(name: string): void {
+    const folder: Folder = { id: this.generateId(), name, isExpanded: true };
+    this.folders.update(f => [...f, folder]);
+    this.saveConversations();
+  }
+
+  updateFolder(id: string, updates: Partial<Folder>): void {
+    this.folders.update(folders => folders.map(f => f.id === id ? { ...f, ...updates } : f));
+    this.saveConversations();
+  }
+
+  deleteFolder(id: string): void {
+    this.folders.update(folders => folders.filter(f => f.id !== id));
+    // Orphan conversations
+    this.conversations.update(convs => convs.map(c => c.folderId === id ? { ...c, folderId: undefined } : c));
+    this.saveConversations();
   }
 
   saveLastUsedModel(model: string, providerId: string): void {
@@ -124,11 +152,22 @@ export class ChatService {
     this.saveConversations();
   }
 
-  updateConversationModel(id: string, model: string, providerId: string): void {
+  updateConversation(id: string, updates: Partial<Conversation>): void {
     this.conversations.update((convs) =>
-      convs.map((c) => (c.id === id ? { ...c, model, providerId } : c))
+      convs.map((c) => (c.id === id ? { ...c, ...updates } : c))
     );
     this.saveConversations();
+  }
+
+  updateConversationModel(id: string, model: string, providerId: string): void {
+    this.updateConversation(id, { model, providerId });
+  }
+
+  togglePin(id: string): void {
+    const conv = this.conversations().find(c => c.id === id);
+    if (conv) {
+      this.updateConversation(id, { isPinned: !conv.isPinned });
+    }
   }
 
   clearAllConversations(): void {
@@ -212,35 +251,6 @@ export class ChatService {
     return convs.length;
   }
 
-  searchInMessages(query: string): { conversationId: string; conversationTitle: string; messageId: string; snippet: string; role: string }[] {
-    if (!query.trim()) return [];
-    const lowerQuery = query.toLowerCase();
-    const results: any[] = [];
-
-    for (const conv of this.conversations()) {
-      for (const msg of conv.messages) {
-        if (msg.content.toLowerCase().includes(lowerQuery)) {
-          const idx = msg.content.toLowerCase().indexOf(lowerQuery);
-          const start = Math.max(0, idx - 40);
-          const end = Math.min(msg.content.length, idx + query.length + 40);
-          let snippet = msg.content.slice(start, end);
-          if (start > 0) snippet = '...' + snippet;
-          if (end < msg.content.length) snippet += '...';
-
-          results.push({
-            conversationId: conv.id,
-            conversationTitle: conv.title,
-            messageId: msg.id,
-            snippet,
-            role: msg.role,
-          });
-        }
-      }
-    }
-    return results.slice(0, 50);
-  }
-
-
   stopGeneration(): void {
     if (this.abortController) {
       this.abortController.abort();
@@ -265,7 +275,7 @@ export class ChatService {
     }
   }
 
-  async sendMessage(content: string): Promise<void> {
+  async sendMessage(content: string, images?: string[]): Promise<void> {
     let conv = this.activeConversation();
     if (!conv) {
       conv = this.createConversation();
@@ -277,6 +287,7 @@ export class ChatService {
       id: this.generateId(),
       role: 'user',
       content,
+      images,
       timestamp: new Date(),
     };
 
@@ -319,15 +330,20 @@ export class ChatService {
 
     try {
       const settings = this.getSettings();
-      const ollamaMessages: { role: string; content: string }[] = [];
-      if (settings.systemPrompt) {
-        ollamaMessages.push({ role: 'system', content: settings.systemPrompt });
+      const updatedConv = this.conversations().find((c) => c.id === conv!.id)!;
+      const apiMessages: { role: string; content: string; images?: string[] }[] = [];
+      const systemPrompt = updatedConv.systemPrompt || settings.systemPrompt;
+      if (systemPrompt) {
+        apiMessages.push({ role: 'system', content: systemPrompt });
       }
 
-      const updatedConv = this.conversations().find((c) => c.id === conv!.id)!;
       for (const msg of updatedConv.messages) {
         if (msg.role !== 'system' && msg.id !== assistantMessage.id) {
-          ollamaMessages.push({ role: msg.role, content: msg.content });
+          apiMessages.push({
+            role: msg.role,
+            content: msg.content,
+            images: msg.images
+          });
         }
       }
 
@@ -338,9 +354,9 @@ export class ChatService {
         for await (const chunk of this.providerService.streamChat(
           conv.providerId,
           conv.model,
-          ollamaMessages,
+          apiMessages,
           settings.temperature,
-          this.abortController.signal
+          this.abortController?.signal
         )) {
           if (chunk.content) {
             fullContent += chunk.content;
@@ -383,12 +399,12 @@ export class ChatService {
         );
       } else {
         const response = await this.providerService.chat(
-          conv.providerId,
-          conv.model,
-          ollamaMessages,
+          conv!.providerId,
+          conv!.model,
+          apiMessages,
           settings.temperature
         );
-        const stats = this.extractStats(response.stats);
+        const stats = this.extractStats(response?.stats);
         this.conversations.update((convs) =>
           convs.map((c) => {
             if (c.id === conv!.id) {
@@ -493,14 +509,19 @@ export class ChatService {
 
     try {
       const settings = this.getSettings();
-      const apiMessages: { role: string; content: string }[] = [];
-      if (settings.systemPrompt) {
-        apiMessages.push({ role: 'system', content: settings.systemPrompt });
-      }
       const updatedConv = this.conversations().find((c) => c.id === conv.id)!;
+      const apiMessages: { role: string; content: string; images?: string[] }[] = [];
+      const systemPrompt = updatedConv.systemPrompt || settings.systemPrompt;
+      if (systemPrompt) {
+        apiMessages.push({ role: 'system', content: systemPrompt });
+      }
       for (const msg of updatedConv.messages) {
         if (msg.role !== 'system' && msg.id !== assistantMessage.id) {
-          apiMessages.push({ role: msg.role, content: msg.content });
+          apiMessages.push({
+            role: msg.role,
+            content: msg.content,
+            images: msg.images
+          });
         }
       }
 
@@ -511,7 +532,7 @@ export class ChatService {
         conv.model,
         apiMessages,
         settings.temperature,
-        this.abortController.signal
+        this.abortController?.signal
       )) {
         if (chunk.content) {
           fullContent += chunk.content;
@@ -576,5 +597,25 @@ export class ChatService {
       this.abortController = null;
       this.saveConversations();
     }
+  }
+
+  searchInMessages(query: string): { conversationId: string; messageId: string; content: string; role: string }[] {
+    const results: any[] = [];
+    if (!query) return results;
+
+    const lowerQuery = query.toLowerCase();
+    for (const conv of this.conversations()) {
+      for (const msg of conv.messages) {
+        if (msg.content.toLowerCase().includes(lowerQuery)) {
+          results.push({
+            conversationId: conv.id,
+            messageId: msg.id,
+            content: msg.content,
+            role: msg.role
+          });
+        }
+      }
+    }
+    return results;
   }
 }

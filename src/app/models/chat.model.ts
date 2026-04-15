@@ -2,6 +2,7 @@ export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
+  images?: string[]; // base64 strings
   timestamp: Date;
   model?: string;
   providerName?: string;
@@ -14,6 +15,12 @@ export interface ChatMessage {
   totalDuration?: number; // in milliseconds
 }
 
+export interface Folder {
+  id: string;
+  name: string;
+  isExpanded?: boolean;
+}
+
 export interface Conversation {
   id: string;
   title: string;
@@ -23,6 +30,8 @@ export interface Conversation {
   createdAt: Date;
   updatedAt: Date;
   systemPrompt?: string;
+  folderId?: string;
+  isPinned?: boolean;
 }
 
 export interface OllamaModel {
