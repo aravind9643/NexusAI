@@ -1,4 +1,5 @@
-import { Pipe, PipeTransform } from '@angular/core';
+import { Pipe, PipeTransform, inject } from '@angular/core';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { marked } from 'marked';
 import hljs from 'highlight.js';
 
@@ -7,6 +8,8 @@ import hljs from 'highlight.js';
   standalone: true,
 })
 export class MarkdownPipe implements PipeTransform {
+  private sanitizer = inject(DomSanitizer);
+
   constructor() {
     const renderer = new marked.Renderer();
 
@@ -19,15 +22,18 @@ export class MarkdownPipe implements PipeTransform {
         highlighted = hljs.highlightAuto(text).value;
       }
       const escapedLang = this.escapeHtml(language);
+      const encodedText = btoa(encodeURIComponent(text).replace(/%([0-9A-F]{2})/g, (match, p1) => 
+        String.fromCharCode(parseInt(p1, 16))
+      ));
       return `<div class="code-block">
         <div class="code-header">
           <span class="code-lang">${escapedLang}</span>
-          <button class="copy-btn" onclick="navigator.clipboard.writeText(decodeURIComponent('${encodeURIComponent(text)}'))">
+          <button class="copy-btn" data-code="${encodedText}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
               <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
             </svg>
-            Copy
+            <span>Copy</span>
           </button>
         </div>
         <pre><code class="hljs language-${escapedLang}">${highlighted}</code></pre>
@@ -49,10 +55,11 @@ export class MarkdownPipe implements PipeTransform {
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
-  transform(value: string): string {
+  transform(value: string): SafeHtml {
     if (!value) return '';
     try {
-      return marked.parse(value) as string;
+      const html = marked.parse(value) as string;
+      return this.sanitizer.bypassSecurityTrustHtml(html);
     } catch {
       return value;
     }

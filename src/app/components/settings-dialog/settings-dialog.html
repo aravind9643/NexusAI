@@ -36,6 +36,14 @@
         </svg>
         Analytics
       </button>
+      <button class="tab" [class.active]="activeTab() === 'help'" (click)="activeTab.set('help')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        Help
+      </button>
       <button class="tab" [class.active]="activeTab() === 'about'" (click)="activeTab.set('about')">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="10"/>
@@ -208,6 +216,60 @@
               <p class="no-data">No usage data yet. Start chatting!</p>
             }
           </div>
+        </div>
+      }
+
+      @if (activeTab() === 'help') {
+        <div class="help-content">
+          <section class="help-section">
+            <h3><span class="icon">🦙</span> Ollama (Local AI)</h3>
+            <p>To use Ollama from this web interface, you must enable CORS permissions on your machine:</p>
+            
+            <div class="code-block">
+              <strong>Windows (PowerShell):</strong>
+              <pre>[Environment]::SetEnvironmentVariable("OLLAMA_ORIGINS", "*", "User")</pre>
+              <span class="hint">Restart Ollama from the system tray after running this.</span>
+            </div>
+
+            <div class="code-block">
+              <strong>Mac / Linux:</strong>
+              <pre>launchctl setenv OLLAMA_ORIGINS "*"</pre>
+              <span class="hint">Or run: OLLAMA_ORIGINS="*" ollama serve</span>
+            </div>
+
+            <div class="warning-box">
+              <strong>Mixed Content Note:</strong> If the app is on HTTPS (like Vercel) and Ollama is on HTTP (localhost), 
+              your browser will block the request. You must click the <strong>Site Settings (lock icon)</strong> 
+              in the URL bar and set <strong>Insecure Content</strong> to <strong>Allow</strong>.
+            </div>
+          </section>
+
+          <section class="help-section">
+            <h3><span class="icon">🌐</span> Cloud Providers</h3>
+            <div class="provider-help">
+              <div class="provider-help-item">
+                <strong>OpenRouter:</strong> Best for accessing Claude, GPT-4, and Gemini with one key. 
+                Base URL: <code>https://openrouter.ai/api/v1</code>
+              </div>
+              <div class="provider-help-item">
+                <strong>Groq:</strong> Ultra-fast inference. 
+                Base URL: <code>https://api.groq.com/openai/v1</code>
+              </div>
+              <div class="provider-help-item">
+                <strong>OpenAI:</strong> Direct GPT access. 
+                Base URL: <code>https://api.openai.com/v1</code>
+              </div>
+            </div>
+          </section>
+
+          <section class="help-section">
+            <h3><span class="icon">⚡</span> Quick Troubleshooting</h3>
+            <ul>
+              <li><strong>Models not showing?</strong> Click the refresh icon in the model selector.</li>
+              <li><strong>Connection Error?</strong> Check if your API key is correct or if Ollama is running.</li>
+              <li><strong>Slow responses?</strong> Local speed depends on your GPU/CPU power.</li>
+            </ul>
+          </section>
         </div>
       }
 

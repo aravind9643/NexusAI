@@ -41,7 +41,9 @@
       }
 
       @if (message.model) {
-        <span class="model-badge">{{ message.model }}</span>
+        <span class="model-badge">
+          {{ message.providerName ? message.providerName + ' · ' : '' }}{{ message.model }}
+        </span>
       }
 
       <!-- Actions -->

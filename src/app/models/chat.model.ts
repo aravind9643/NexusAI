@@ -4,6 +4,7 @@ export interface ChatMessage {
   content: string;
   timestamp: Date;
   model?: string;
+  providerName?: string;
   isStreaming?: boolean;
   thinkingContent?: string;
   isThinking?: boolean;

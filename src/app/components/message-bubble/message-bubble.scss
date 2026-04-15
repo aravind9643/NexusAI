@@ -276,6 +276,12 @@
           background: rgba(255, 255, 255, 0.1);
           color: rgba(255, 255, 255, 0.8);
         }
+
+        &.copied {
+          color: #10B981;
+          border-color: rgba(16, 185, 129, 0.3);
+          background: rgba(16, 185, 129, 0.1);
+        }
       }
 
       pre {

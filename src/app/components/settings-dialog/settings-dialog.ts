@@ -20,7 +20,7 @@ export class SettingsDialogComponent {
   chatService = inject(ChatService);
   toast = inject(ToastService);
 
-  activeTab = signal<'providers' | 'general' | 'analytics' | 'about'>('providers');
+  activeTab = signal<'providers' | 'general' | 'analytics' | 'help' | 'about'>('providers');
   testingProvider = signal<string>('');
 
   // Local settings copy

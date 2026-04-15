@@ -9,6 +9,7 @@ export class ChatService {
   private providerService = inject(ProviderService);
   private storageKey = 'ollama-chat-conversations';
   private settingsKey = 'ollama-chat-settings';
+  private lastModelKey = 'nexus-last-model';
   private abortController: AbortController | null = null;
 
   conversations = signal<Conversation[]>(this.loadConversations());
@@ -76,13 +77,15 @@ export class ChatService {
   }
 
   createConversation(model?: string, providerId?: string): Conversation {
+    const lastUsed = this.getLastUsedModel();
     const activeProvider = this.providerService.activeProvider();
+    
     const conversation: Conversation = {
       id: this.generateId(),
       title: 'New Chat',
       messages: [],
-      model: model || '',
-      providerId: providerId || activeProvider?.id || 'ollama-default',
+      model: model || lastUsed?.model || '',
+      providerId: providerId || lastUsed?.providerId || activeProvider?.id || 'ollama-default',
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -90,6 +93,15 @@ export class ChatService {
     this.activeConversationId.set(conversation.id);
     this.saveConversations();
     return conversation;
+  }
+
+  saveLastUsedModel(model: string, providerId: string): void {
+    localStorage.setItem(this.lastModelKey, JSON.stringify({ model, providerId }));
+  }
+
+  getLastUsedModel(): { model: string; providerId: string } | null {
+    const stored = localStorage.getItem(this.lastModelKey);
+    return stored ? JSON.parse(stored) : null;
   }
 
   setActiveConversation(id: string): void {
@@ -282,12 +294,14 @@ export class ChatService {
       this.renameConversation(conv.id, title);
     }
 
+    const provider = this.providerService.getProviderById(conv.providerId);
     const assistantMessage: ChatMessage = {
       id: this.generateId(),
       role: 'assistant',
       content: '',
       timestamp: new Date(),
       model: conv.model,
+      providerName: provider?.name,
       isStreaming: true,
     };
 
@@ -454,12 +468,14 @@ export class ChatService {
       convs.map((c) => (c.id === conv.id ? { ...c, messages } : c))
     );
 
+    const provider = this.providerService.getProviderById(conv.providerId);
     const assistantMessage: ChatMessage = {
       id: this.generateId(),
       role: 'assistant',
       content: '',
       timestamp: new Date(),
       model: conv.model,
+      providerName: provider?.name,
       isStreaming: true,
     };
 

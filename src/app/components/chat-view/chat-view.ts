@@ -35,6 +35,7 @@ export class ChatViewComponent implements AfterViewChecked {
   @ViewChild('fileInput') fileInput!: ElementRef;
 
   inputText = signal('');
+  modelSearchQuery = signal('');
   showModelSelector = signal(false);
   showScrollBottom = signal(false);
   isRecording = signal(false);
@@ -144,6 +145,7 @@ export class ChatViewComponent implements AfterViewChecked {
   }
 
   selectModel(model: ProviderModel): void {
+    this.chatService.saveLastUsedModel(model.id, model.providerId);
     const conv = this.chatService.activeConversation();
     if (conv) {
       this.chatService.updateConversationModel(conv.id, model.id, model.providerId);
@@ -151,6 +153,7 @@ export class ChatViewComponent implements AfterViewChecked {
       this.chatService.createConversation(model.id, model.providerId);
     }
     this.showModelSelector.set(false);
+    this.modelSearchQuery.set('');
   }
 
   getCurrentModel(): string {
@@ -173,7 +176,13 @@ export class ChatViewComponent implements AfterViewChecked {
 
   getGroupedModels(): { providerName: string; models: ProviderModel[] }[] {
     const groups: Record<string, { providerName: string; models: ProviderModel[] }> = {};
+    const query = this.modelSearchQuery().toLowerCase();
+    
     for (const model of this.models()) {
+      if (query && !model.name.toLowerCase().includes(query)) {
+        continue;
+      }
+      
       if (!groups[model.providerId]) {
         groups[model.providerId] = { providerName: model.providerName, models: [] };
       }
@@ -183,7 +192,11 @@ export class ChatViewComponent implements AfterViewChecked {
   }
 
   toggleModelSelector(): void {
-    this.showModelSelector.update((v) => !v);
+    const isOpening = !this.showModelSelector();
+    this.showModelSelector.set(isOpening);
+    if (!isOpening) {
+      this.modelSearchQuery.set('');
+    }
   }
 
   stopGeneration(): void {

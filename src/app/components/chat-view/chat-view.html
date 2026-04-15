@@ -36,6 +36,27 @@
             </button>
           </div>
 
+          <div class="model-search">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input 
+              type="text" 
+              placeholder="Search models..." 
+              [value]="modelSearchQuery()"
+              (input)="modelSearchQuery.set($any($event.target).value)"
+              (click)="$event.stopPropagation()"
+            >
+            @if (modelSearchQuery()) {
+              <button class="clear-search" (click)="modelSearchQuery.set(''); $event.stopPropagation()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            }
+          </div>
+
           @for (group of getGroupedModels(); track group.providerName) {
             <div class="provider-group">
               <div class="provider-group-label">{{ group.providerName }}</div>

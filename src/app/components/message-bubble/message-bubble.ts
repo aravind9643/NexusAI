@@ -1,4 +1,4 @@
-import { Component, Input, inject, output } from '@angular/core';
+import { Component, Input, inject, output, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ChatMessage } from '../../models/chat.model';
 import { MarkdownPipe } from '../../pipes/markdown.pipe';
@@ -22,6 +22,50 @@ export class MessageBubbleComponent {
   copyMessage(): void {
     navigator.clipboard.writeText(this.message.content);
     this.toast.success('Copied to clipboard');
+  }
+
+  @HostListener('click', ['$event'])
+  handleCopyButtonClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    const copyBtn = target.closest('.copy-btn') as HTMLElement;
+    
+    if (copyBtn && copyBtn.dataset['code']) {
+      event.preventDefault();
+      event.stopPropagation();
+      
+      const base64Code = copyBtn.dataset['code'];
+      try {
+        // Robust way to decode base64 utf-8
+        const code = decodeURIComponent(
+          Array.prototype.map.call(atob(base64Code), (c) => {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+          }).join('')
+        );
+
+        navigator.clipboard.writeText(code).then(() => {
+          this.toast.success('Code copied!');
+          
+          // Visual feedback
+          const textSpan = copyBtn.querySelector('span');
+          if (textSpan) {
+            const originalText = textSpan.innerText;
+            textSpan.innerText = 'Copied!';
+            copyBtn.classList.add('copied');
+            
+            setTimeout(() => {
+              textSpan.innerText = originalText;
+              copyBtn.classList.remove('copied');
+            }, 2000);
+          }
+        });
+      } catch (e) {
+        console.error('Copy failed', e);
+        // Fallback for non-unicode if robust fetch fails
+        try {
+          navigator.clipboard.writeText(atob(base64Code));
+        } catch (inner) { /* ignore */ }
+      }
+    }
   }
 
   getFormattedTime(): string {
