@@ -26,70 +26,74 @@
       @if (showModelSelector()) {
         <div class="dropdown-backdrop" (click)="showModelSelector.set(false)"></div>
         <div class="model-dropdown" id="model-dropdown">
-          <div class="dropdown-header">
-            <span>Select Model</span>
-            <button class="refresh-btn" (click)="providerService.fetchAllModels()" [disabled]="providerService.isLoadingModels()">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" [class.spinning]="providerService.isLoadingModels()">
-                <polyline points="23 4 23 10 17 10"/>
-                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-              </svg>
-            </button>
-          </div>
-
-          <div class="model-search">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="11" cy="11" r="8"/>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            </svg>
-            <input 
-              type="text" 
-              placeholder="Search models..." 
-              [value]="modelSearchQuery()"
-              (input)="modelSearchQuery.set($any($event.target).value)"
-              (click)="$event.stopPropagation()"
-            >
-            @if (modelSearchQuery()) {
-              <button class="clear-search" (click)="modelSearchQuery.set(''); $event.stopPropagation()">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          <div class="dropdown-static-top">
+            <div class="dropdown-header">
+              <span>Select Model</span>
+              <button class="refresh-btn" (click)="providerService.fetchAllModels()" [disabled]="providerService.isLoadingModels()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" [class.spinning]="providerService.isLoadingModels()">
+                  <polyline points="23 4 23 10 17 10"/>
+                  <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
                 </svg>
               </button>
-            }
-          </div>
+            </div>
 
-          @for (group of getGroupedModels(); track group.providerName) {
-            <div class="provider-group">
-              <div class="provider-group-label">{{ group.providerName }}</div>
-              @for (model of group.models; track model.id) {
-                <button
-                  class="model-option"
-                  [class.selected]="model.id === activeConversation()?.model && model.providerId === activeConversation()?.providerId"
-                  (click)="selectModel(model)"
-                >
-                  <div class="model-option-info">
-                    <span class="model-option-name">{{ model.name }}</span>
-                    <span class="model-option-size">{{ model.size || '' }}{{ model.paramSize ? (model.size ? ' · ' : '') + model.paramSize : '' }}</span>
-                  </div>
-                  @if (model.id === activeConversation()?.model && model.providerId === activeConversation()?.providerId) {
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="3">
-                      <polyline points="20 6 9 17 4 12"/>
-                    </svg>
-                  }
+            <div class="model-search">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <input 
+                type="text" 
+                placeholder="Search models..." 
+                [value]="modelSearchQuery()"
+                (input)="modelSearchQuery.set($any($event.target).value)"
+                (click)="$event.stopPropagation()"
+              >
+              @if (modelSearchQuery()) {
+                <button class="clear-search" (click)="modelSearchQuery.set(''); $event.stopPropagation()">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
                 </button>
               }
             </div>
-          }
+          </div>
 
-          @if (models().length === 0) {
-            <div class="no-models">
-              @if (providerService.isLoadingModels()) {
-                <div class="loading-spinner"></div>
-                <span>Loading models...</span>
-              } @else {
-                <span>No models found. Configure providers in Settings.</span>
-              }
-            </div>
-          }
+          <div class="models-list">
+            @for (group of getGroupedModels(); track group.providerName) {
+              <div class="provider-group">
+                <div class="provider-group-label">{{ group.providerName }}</div>
+                @for (model of group.models; track model.id) {
+                  <button
+                    class="model-option"
+                    [class.selected]="model.id === activeConversation()?.model && model.providerId === activeConversation()?.providerId"
+                    (click)="selectModel(model)"
+                  >
+                    <div class="model-option-info">
+                      <span class="model-option-name">{{ model.name }}</span>
+                      <span class="model-option-size">{{ model.size || '' }}{{ model.paramSize ? (model.size ? ' · ' : '') + model.paramSize : '' }}</span>
+                    </div>
+                    @if (model.id === activeConversation()?.model && model.providerId === activeConversation()?.providerId) {
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="3">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                    }
+                  </button>
+                }
+              </div>
+            }
+
+            @if (models().length === 0) {
+              <div class="no-models">
+                @if (providerService.isLoadingModels()) {
+                  <div class="loading-spinner"></div>
+                  <span>Loading models...</span>
+                } @else {
+                  <span>No models found. Configure providers in Settings.</span>
+                }
+              </div>
+            }
+          </div>
         </div>
       }
     </div>

@@ -122,15 +122,20 @@
   top: calc(100% + 8px);
   left: 0;
   min-width: 320px;
-  max-height: 480px;
-  overflow-y: auto;
   background: rgba(20, 20, 35, 0.99);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 14px;
-  padding: 0; // Remove general padding to fix sticky header gaps
+  padding: 0;
   z-index: 100;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   animation: dropdownIn 0.2s ease;
+  overflow: hidden; // Ensure outer container is neat
+}
+
+.models-list {
+  max-height: 400px;
+  overflow-y: auto;
+  padding-bottom: 8px;
 
   &::-webkit-scrollbar {
     width: 6px;
@@ -150,10 +155,12 @@
   }
 }
 
-.dropdown-header {
-  position: sticky;
-  top: 0;
+.dropdown-static-top {
   background: #141423;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.dropdown-header {
   padding: 12px 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   display: flex;
@@ -164,20 +171,14 @@
   text-transform: uppercase;
   letter-spacing: 1.2px;
   color: rgba(255, 255, 255, 0.5);
-  z-index: 10;
-  border-radius: 14px 14px 0 0;
 }
 
 .model-search {
-  position: sticky;
-  top: 36px; // Height of the sticky header approx
-  background: #141423;
   padding: 10px 16px;
   display: flex;
   align-items: center;
   gap: 10px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  z-index: 9;
 
   svg {
     color: rgba(255, 255, 255, 0.3);
@@ -192,7 +193,7 @@
     color: white;
     font-size: 13px;
     padding: 0;
-    width: 0; // Prevent flex item from pushing wide
+    width: 0;
 
     &::placeholder {
       color: rgba(255, 255, 255, 0.2);
@@ -815,11 +816,17 @@
     right: 0;
     min-width: unset;
     width: 100%;
-    max-height: 60vh;
     border-radius: 20px 20px 0 0;
     padding: 0;
-    overflow-y: auto;
+    overflow: hidden;
     animation: slideUp 0.3s ease;
+  }
+
+  .models-list {
+    max-height: 60vh;
+    overflow-y: auto;
+    padding-bottom: constant(safe-area-inset-bottom);
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
   .dropdown-backdrop {
