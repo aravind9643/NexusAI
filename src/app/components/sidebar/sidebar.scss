@@ -721,13 +721,18 @@
     position: fixed;
     left: 0;
     top: 0;
-    height: 100%;
-    z-index: 200;
-    box-shadow: 10px 0 40px rgba(0, 0, 0, 0.5);
+    height: 100dvh;
+    z-index: 1000;
+    width: 280px;
+    box-shadow: 20px 0 50px rgba(0, 0, 0, 0.4);
+    transform: translateX(0);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     &.collapsed {
-      width: 0;
+      width: 280px; // Keep width for animation consistency
+      transform: translateX(-100%);
       border-right: none;
+      box-shadow: none;
     }
   }
 
@@ -735,9 +740,16 @@
     display: block;
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 199;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 999;
+    animation: fadeIn 0.3s ease;
   }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 // Modal Styles

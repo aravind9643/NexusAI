@@ -7,6 +7,7 @@ import {
   AfterViewChecked,
   HostListener,
   effect,
+  output,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -35,6 +36,8 @@ export class ChatViewComponent implements AfterViewChecked {
   @ViewChild('messagesContainer') messagesContainer!: ElementRef;
   @ViewChild('messageInput') messageInput!: ElementRef;
   @ViewChild('fileInput') fileInput!: ElementRef;
+
+  openSettingsAction = output<void>({ alias: 'openSettings' });
 
   inputText = signal('');
   attachedImages = signal<string[]>([]);

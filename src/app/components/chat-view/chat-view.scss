@@ -130,8 +130,9 @@
 .model-btn {
   display: flex;
   align-items: center;
+  height: 36px;
   gap: 8px;
-  padding: 8px 16px;
+  padding: 0 16px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 10px;
@@ -145,6 +146,7 @@
   &:hover {
     background: rgba(255, 255, 255, 0.08);
     border-color: rgba(139, 92, 246, 0.3);
+    color: #fff;
   }
 
   svg {
@@ -177,7 +179,7 @@
 
 .provider-group {
   border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-  
+
   &:last-child {
     border-bottom: none;
   }
@@ -203,7 +205,10 @@
 
   &:hover {
     background: rgba(255, 255, 255, 0.05);
-    span { color: #06B6D4; }
+
+    span {
+      color: #06B6D4;
+    }
   }
 
   .group-meta {
@@ -223,7 +228,7 @@
     svg {
       color: rgba(255, 255, 255, 0.2);
       transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      
+
       &.rotated {
         transform: rotate(180deg);
         color: #8B5CF6;
@@ -238,8 +243,15 @@
 }
 
 @keyframes groupExpand {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .model-indicator {
@@ -951,31 +963,66 @@
   }
 
   .top-bar {
-    padding: 8px 12px;
+    padding: 0 12px;
+    height: 56px;
     gap: 8px;
   }
 
-  .menu-toggle-btn {
-    display: flex;
+  .sidebar-toggle-btn {
+    display: flex; // Ensure it's visible on mobile
+  }
+
+  .model-selector {
+    padding: 2px;
+    border-radius: 12px;
   }
 
   .model-btn {
-    padding: 6px 10px;
+    padding: 0 10px;
+    height: 34px;
+    max-width: 140px;
     font-size: 13px;
-    border-radius: 8px;
-    max-width: 200px;
 
     .model-name {
-      font-size: 13px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 120px;
+      max-width: 90px;
+    }
+
+    svg:not(.chevron) {
+      display: none; // save space
     }
 
     .provider-label {
       display: none;
     }
+  }
+
+  .options-btn {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+  }
+
+  .chat-actions {
+    gap: 4px;
+
+    .action-btn {
+      width: 32px;
+      height: 32px;
+
+      span {
+        display: none;
+      }
+
+      // hide button text labels
+    }
+  }
+
+  .connection-warning {
+    display: none;
+  }
+
+  .menu-toggle-btn {
+    display: flex;
   }
 
   .model-indicator {
@@ -987,7 +1034,11 @@
     padding: 6px;
     background: transparent;
     border: none;
-    svg { width: 18px; height: 18px; }
+
+    svg {
+      width: 18px;
+      height: 18px;
+    }
   }
 
   .options-dropdown {
@@ -1037,10 +1088,6 @@
     display: none;
   }
 
-  .connection-warning {
-    display: none;
-  }
-
   // Welcome screen
   .welcome-screen {
     padding: 24px 16px;
@@ -1069,7 +1116,34 @@
 
   // Messages
   .messages-wrapper {
-    padding: 12px;
+    padding: 12px 12px 80px;
+    gap: 16px;
+  }
+
+  .message-bubble {
+    padding: 12px 14px;
+    font-size: 14.5px;
+    line-height: 1.5;
+    border-radius: 16px;
+    max-width: 95%;
+
+    .msg-header {
+      margin-bottom: 6px;
+
+      .msg-model {
+        display: none;
+      }
+
+      // Hide model name on mobile bubbles
+    }
+  }
+
+  .message.user .message-bubble {
+    border-bottom-right-radius: 4px;
+  }
+
+  .message.assistant .message-bubble {
+    border-bottom-left-radius: 4px;
   }
 
   .date-separator span {
@@ -1256,11 +1330,25 @@
 }
 
 @keyframes pulse {
-  0%, 100% { transform: scale(1); opacity: 0.5; }
-  50% { transform: scale(1.2); opacity: 0.8; }
+
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
