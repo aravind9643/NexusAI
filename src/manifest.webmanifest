@@ -1,18 +1,25 @@
 {
   "name": "NexusAI Chat",
   "short_name": "NexusAI",
-  "description": "Premium multi-provider AI chat interface — Ollama, OpenRouter, OpenAI, Groq",
-  "start_url": "/",
+  "theme_color": "#0F172A",
+  "background_color": "#0F172A",
   "display": "standalone",
-  "background_color": "#0f0f19",
-  "theme_color": "#8B5CF6",
-  "orientation": "any",
+  "scope": "/",
+  "start_url": "/",
   "icons": [
     {
-      "src": "icons/icon-512x512.svg",
-      "sizes": "192x192 512x512",
-      "type": "image/svg+xml",
-      "purpose": "any"
+      "src": "assets/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
     }
-  ]
+  ],
+  "orientation": "portrait",
+  "description": "Premium AI Chat Interface with Multimodal Capabilities"
 }

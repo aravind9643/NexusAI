@@ -141,6 +141,7 @@ export class ChatViewComponent implements AfterViewChecked {
     } catch (err) {}
   }
   async sendMessage(): Promise<void> {
+    this.triggerHaptic(10);
     const currentText = this.inputText().trim();
     const files = this.attachedFiles();
     const images = files.filter(f => f.type === 'image').map(f => f.data);
@@ -148,15 +149,6 @@ export class ChatViewComponent implements AfterViewChecked {
 
     if (!currentText && files.length === 0) return;
     if (this.chatService.isGenerating()) return;
-
-    // Compile message content
-    let finalContent = currentText;
-    if (textFiles.length > 0) {
-      textFiles.forEach(tf => {
-        finalContent += `\n\n---\n📎 **${tf.name}**\n\`\`\`\n${tf.data}\n\`\`\`\n---\n`;
-      });
-    }
-
     // Handle Slash Commands
     if (currentText.startsWith('/')) {
       if (this.handleCommand(currentText)) {
@@ -174,7 +166,7 @@ export class ChatViewComponent implements AfterViewChecked {
       this.messageInput.nativeElement.style.height = 'auto';
     }
 
-    await this.chatService.sendMessage(finalContent, images, this.isThinkingEnabled());
+    await this.chatService.sendMessage(currentText, images, files, this.isThinkingEnabled());
 
     setTimeout(() => {
       this.messageInput?.nativeElement?.focus();
@@ -388,6 +380,7 @@ export class ChatViewComponent implements AfterViewChecked {
   }
 
   useSuggestion(prompt: string): void {
+    this.triggerHaptic(5);
     this.inputText.set(prompt);
     if (this.messageInput?.nativeElement) {
       this.messageInput.nativeElement.focus();
@@ -498,5 +491,11 @@ export class ChatViewComponent implements AfterViewChecked {
 
   closePreview(): void {
     this.activePreviewImage.set(null);
+  }
+
+  triggerHaptic(ms: number): void {
+    if ('vibrate' in navigator) {
+      try { navigator.vibrate(ms); } catch (e) {}
+    }
   }
 }

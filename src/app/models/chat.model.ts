@@ -10,6 +10,7 @@ export interface ChatMessage {
   thinkingContent?: string;
   isThinking?: boolean;
   thinkingDuration?: number; // in milliseconds
+  files?: { name: string; type: string; data: string }[];
   // Token stats (from Ollama response)
   tokenCount?: number;
   tokensPerSecond?: number;

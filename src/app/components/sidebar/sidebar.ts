@@ -45,7 +45,7 @@ export class SidebarComponent {
       // Show conversations that have matching messages
       const results = this.chatService.searchInMessages(query);
       this.contentSearchResults.set(results);
-      const matchedIds = new Set(results.map((r) => r.conversationId));
+      const matchedIds = new Set(results.map((r: any) => r.conversationId));
       return convs.filter((c) => matchedIds.has(c.id));
     }
 
