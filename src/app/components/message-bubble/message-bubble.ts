@@ -1,4 +1,4 @@
-import { Component, Input, inject, output, HostListener } from '@angular/core';
+import { Component, Input, inject, output, HostListener, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ChatMessage } from '../../models/chat.model';
 import { MarkdownPipe } from '../../pipes/markdown.pipe';
@@ -17,6 +17,7 @@ export class MessageBubbleComponent {
   regenerate = output<void>();
   edit = output<void>();
   previewImage = output<string>();
+  isThinkingExpanded = signal(false);
 
   private toast = inject(ToastService);
 

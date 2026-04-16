@@ -275,7 +275,7 @@ export class ChatService {
     }
   }
 
-  async sendMessage(content: string, images?: string[]): Promise<void> {
+  async sendMessage(content: string, images?: string[], includeThinking = true): Promise<void> {
     let conv = this.activeConversation();
     if (!conv) {
       conv = this.createConversation();
@@ -349,7 +349,10 @@ export class ChatService {
 
       if (settings.streamResponses) {
         let fullContent = '';
+        let fullThinking = '';
         let finalStats: any = null;
+        let thinkingStartTime: number | null = null;
+        let thinkingDuration = 0;
 
         for await (const chunk of this.providerService.streamChat(
           conv.providerId,
@@ -358,8 +361,20 @@ export class ChatService {
           settings.temperature,
           this.abortController?.signal
         )) {
-          if (chunk.content) {
-            fullContent += chunk.content;
+          // Track thinking duration
+          if (chunk.isThinking && !thinkingStartTime) {
+            thinkingStartTime = Date.now();
+          } else if (!chunk.isThinking && thinkingStartTime && thinkingDuration === 0) {
+            thinkingDuration = Date.now() - thinkingStartTime;
+          }
+
+          if (chunk.content || chunk.thinkingContent || chunk.isThinking) {
+            fullContent += chunk.content || '';
+            // Only accumulate thinking if enabled
+            if (includeThinking) {
+              fullThinking += chunk.thinkingContent || '';
+            }
+            
             this.conversations.update((convs) =>
               convs.map((c) => {
                 if (c.id === conv!.id) {
@@ -367,7 +382,14 @@ export class ChatService {
                     ...c,
                     messages: c.messages.map((m) =>
                       m.id === assistantMessage.id
-                        ? { ...m, content: fullContent, isStreaming: !chunk.done }
+                        ? { 
+                            ...m, 
+                            content: fullContent, 
+                            thinkingContent: fullThinking,
+                            isThinking: chunk.isThinking,
+                            thinkingDuration: thinkingDuration || (thinkingStartTime ? Date.now() - thinkingStartTime : 0),
+                            isStreaming: !chunk.done 
+                          }
                         : m
                     ),
                   };

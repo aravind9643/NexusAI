@@ -16,6 +16,7 @@ export interface ProviderConfig {
 export interface ModelCapabilities {
   vision: boolean;
   tools: boolean;
+  reasoning: boolean;
 }
 
 export interface ProviderModel {

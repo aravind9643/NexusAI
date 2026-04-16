@@ -8,6 +8,7 @@ import {
   HostListener,
   effect,
   output,
+  computed,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -46,6 +47,7 @@ export class ChatViewComponent implements AfterViewChecked {
   showChatOptions = signal(false);
   showScrollBottom = signal(false);
   isRecording = signal(false);
+  isThinkingEnabled = signal(true);
   activePreviewImage = signal<string | null>(null);
   expandedProviders = signal<Set<string>>(new Set());
   shouldScrollToBottom = true;
@@ -70,6 +72,13 @@ export class ChatViewComponent implements AfterViewChecked {
       }
     });
   }
+
+  canThink = computed(() => {
+    const conv = this.activeConversation();
+    if (!conv) return false;
+    const model = this.models().find(m => m.id === conv.model && m.providerId === conv.providerId);
+    return !!model?.capabilities?.reasoning;
+  });
 
   toggleSidebar(): void {
     this.chatService.sidebarCollapsed.update((v) => !v);
@@ -165,7 +174,7 @@ export class ChatViewComponent implements AfterViewChecked {
       this.messageInput.nativeElement.style.height = 'auto';
     }
 
-    await this.chatService.sendMessage(finalContent, images);
+    await this.chatService.sendMessage(finalContent, images, this.isThinkingEnabled());
 
     setTimeout(() => {
       this.messageInput?.nativeElement?.focus();

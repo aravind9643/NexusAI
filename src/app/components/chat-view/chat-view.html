@@ -142,6 +142,13 @@
                             </svg>
                           </span>
                         }
+                        @if (model.capabilities.reasoning) {
+                          <span class="capability-badge reasoning" title="Supports Deep Reasoning (Think)">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                              <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.73-2.73 2.5 2.5 0 0 1-1.31-4.21A2.5 2.5 0 0 1 2 9.5 2.5 2.5 0 0 1 4.5 7h5zM14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.73-2.73 2.5 2.5 0 0 0 1.31-4.21A2.5 2.5 0 0 0 22 9.5 2.5 2.5 0 0 0 19.5 7h-5z"/>
+                            </svg>
+                          </span>
+                        }
                       </div>
                     }
                   </div>
@@ -270,7 +277,7 @@
     }
 
     <div class="input-container">
-      <textarea #messageInput class="message-input" [(ngModel)]="inputText" (input)="autoResize($event)"
+      <textarea #messageInput class="message-input" [ngModel]="inputText()" (ngModelChange)="inputText.set($event)" (input)="autoResize($event)"
         (keydown)="handleKeydown($event)" placeholder="Message NexusAI..." rows="1"
         [disabled]="chatService.isGenerating()" id="message-input"></textarea>
       <div class="input-actions">
@@ -299,6 +306,20 @@
             }
           </svg>
         </button>
+
+        <!-- Think toggle -->
+        @if (canThink()) {
+          <button 
+            class="input-icon-btn think-toggle" 
+            [class.active]="isThinkingEnabled()"
+            (click)="isThinkingEnabled.set(!isThinkingEnabled())" 
+            title="Toggle Deep Reasoning (Think)"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.73-2.73 2.5 2.5 0 0 1-1.31-4.21A2.5 2.5 0 0 1 2 9.5 2.5 2.5 0 0 1 4.5 7h5zM14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.73-2.73 2.5 2.5 0 0 0 1.31-4.21A2.5 2.5 0 0 0 22 9.5 2.5 2.5 0 0 0 19.5 7h-5z"/>
+            </svg>
+          </button>
+        }
 
         <button class="input-icon-btn" (click)="openSettingsAction.emit()" title="App Settings">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

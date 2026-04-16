@@ -461,3 +461,87 @@
   }
 }
 
+
+/* Thinking Block Styles */
+.thinking-block {
+  margin-bottom: 12px;
+  border-radius: 12px;
+  background: rgba(139, 92, 246, 0.05);
+  border: 1px solid rgba(139, 92, 246, 0.1);
+  overflow: hidden;
+  transition: all 0.3s ease;
+
+  &.is-thinking {
+    border-style: dashed;
+    background: rgba(139, 92, 246, 0.02);
+  }
+}
+
+.thinking-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  color: rgba(139, 92, 246, 0.8);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.2s;
+
+  &:hover {
+    background: rgba(139, 92, 246, 0.05);
+  }
+
+  .thinking-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  svg {
+    transition: transform 0.3s ease;
+    &.rotated { transform: rotate(180deg); }
+  }
+}
+
+.thinking-content {
+  padding: 12px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(0, 0, 0, 0.1);
+  border-top: 1px solid rgba(139, 92, 246, 0.05);
+  font-style: italic;
+  animation: slideDown 0.3s ease-out;
+
+  ::ng-deep p { margin: 0 0 8px 0; &:last-child { margin: 0; } }
+}
+
+.thinking-shimmer {
+  width: 40px;
+  height: 4px;
+  background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.4), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 2px;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.thinking-time {
+  font-size: 11px;
+  opacity: 0.6;
+  margin-left: 4px;
+  font-weight: 400;
+}

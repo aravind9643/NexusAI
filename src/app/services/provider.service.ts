@@ -175,7 +175,7 @@ export class ProviderService {
     }));
   }
 
-  private detectCapabilities(id: string, families?: string[]): { vision: boolean; tools: boolean } {
+  private detectCapabilities(id: string, families?: string[]): { vision: boolean; tools: boolean; reasoning: boolean } {
     const lowId = id.toLowerCase();
     
     // Heuristic for vision
@@ -196,10 +196,17 @@ export class ProviderService {
       lowId.includes('claude-') || 
       lowId.includes('gemini-') ||
       lowId.includes('mistral-large') ||
-      lowId.includes('qwen') || // newer qwen supports tools
+      lowId.includes('qwen') || 
       lowId.includes('command-r');
 
-    return { vision: !!hasVision, tools: !!hasTools };
+    // Heuristic for reasoning (DeepSeek R1, OpenAI o1, etc.)
+    const hasReasoning = 
+      lowId.includes('r1') ||
+      lowId.includes('reasoning') ||
+      lowId.includes('o1-') ||
+      lowId.includes('o3-');
+
+    return { vision: !!hasVision, tools: !!hasTools, reasoning: !!hasReasoning };
   }
 
   // ---- OpenAI-compatible API (OpenRouter, OpenAI, Groq, etc.) ----
@@ -241,7 +248,7 @@ export class ProviderService {
     messages: { role: string; content: string; images?: string[] }[],
     temperature: number,
     abortSignal?: AbortSignal
-  ): AsyncGenerator<{ content: string; done: boolean; stats?: any }> {
+  ): AsyncGenerator<{ content: string; thinkingContent?: string; isThinking?: boolean; done: boolean; stats?: any }> {
     const provider = this.getProviderById(providerId);
     if (!provider) throw new Error('Provider not found');
 
@@ -260,7 +267,7 @@ export class ProviderService {
     messages: { role: string; content: string; images?: string[] }[],
     temperature: number,
     abortSignal?: AbortSignal
-  ): AsyncGenerator<{ content: string; done: boolean; stats?: any }> {
+  ): AsyncGenerator<{ content: string; thinkingContent?: string; isThinking?: boolean; done: boolean; stats?: any }> {
     const formattedMessages = messages.map(msg => {
       if (msg.images && msg.images.length > 0) {
         return {
@@ -290,6 +297,7 @@ export class ProviderService {
     const decoder = new TextDecoder();
     let buffer = '';
 
+    let inThinking = false;
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
@@ -302,8 +310,35 @@ export class ProviderService {
         if (line.trim()) {
           try {
             const parsed = JSON.parse(line);
+            const chunk = parsed.message?.content || '';
+            let contentDelta = '';
+            let thinkingDelta = '';
+
+            if (chunk) {
+              let text = chunk;
+              if (text.includes('<think>')) {
+                inThinking = true;
+                text = text.replace('<think>', '');
+              }
+
+              if (inThinking) {
+                if (text.includes('</think>')) {
+                  const parts = text.split('</think>');
+                  thinkingDelta = parts[0];
+                  contentDelta = parts[1];
+                  inThinking = false;
+                } else {
+                  thinkingDelta = text;
+                }
+              } else {
+                contentDelta = text.replace('</think>', '');
+              }
+            }
+
             yield {
-              content: parsed.message?.content || '',
+              content: contentDelta,
+              thinkingContent: thinkingDelta,
+              isThinking: inThinking,
               done: parsed.done || false,
               stats: parsed.done ? {
                 eval_count: parsed.eval_count,
@@ -338,7 +373,7 @@ export class ProviderService {
     messages: { role: string; content: string; images?: string[] }[],
     temperature: number,
     abortSignal?: AbortSignal
-  ): AsyncGenerator<{ content: string; done: boolean; stats?: any }> {
+  ): AsyncGenerator<{ content: string; thinkingContent?: string; isThinking?: boolean; done: boolean; stats?: any }> {
     const formattedMessages = messages.map(msg => {
       if (msg.images && msg.images.length > 0) {
         const content: any[] = [{ type: 'text', text: msg.content }];
@@ -391,6 +426,7 @@ export class ProviderService {
     let totalTokens = 0;
     const startTime = Date.now();
 
+    let inThinking = false;
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
@@ -420,10 +456,63 @@ export class ProviderService {
 
         try {
           const parsed = JSON.parse(data);
-          const delta = parsed.choices?.[0]?.delta?.content || '';
-          if (delta) {
+          const delta = parsed.choices?.[0]?.delta;
+          if (!delta) continue;
+
+          const chunk = delta.content || '';
+          const orReasoning = (delta as any).reasoning || '';
+          
+          let contentDelta = '';
+          let thinkingDelta = '';
+
+          // 1. Handle native reasoning field (OpenRouter/DeepSeek)
+          if (orReasoning) {
+            thinkingDelta = orReasoning;
+            // Native reasoning field usually indicates active thinking
+            if (!inThinking) inThinking = true;
+          }
+
+          // 2. Handle standard content (might contain <think> tags)
+          if (chunk) {
             totalTokens++;
-            yield { content: delta, done: false };
+            let text = chunk;
+            
+            // If we receive content and were in native reasoning mode (from orReasoning),
+            // we should exit thinking mode unless we see a new <think> tag.
+            // This handles providers that don't use tags but use the reasoning field.
+            if (inThinking && !orReasoning && !text.includes('<think>')) {
+              // Only exit if we haven't seen an opening tag in the content stream
+              // For simplicity, we assume native reasoning field and tags aren't mixed
+              // in a way that reasoning field happens BEFORE <think> tags.
+              inThinking = false;
+            }
+
+            if (text.includes('<think>')) {
+              inThinking = true;
+              text = text.replace('<think>', '');
+            }
+
+            if (inThinking) {
+              if (text.includes('</think>')) {
+                const parts = text.split('</think>');
+                thinkingDelta += parts[0];
+                contentDelta = parts[1];
+                inThinking = false;
+              } else {
+                thinkingDelta += text;
+              }
+            } else {
+              contentDelta = text.replace('</think>', '');
+            }
+          }
+
+          if (contentDelta || thinkingDelta || inThinking) {
+            yield {
+              content: contentDelta,
+              thinkingContent: thinkingDelta,
+              isThinking: inThinking,
+              done: false,
+            };
           }
         } catch { /* skip malformed SSE */ }
       }

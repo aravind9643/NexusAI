@@ -848,10 +848,15 @@
   }
 
   &.recording {
-    color: #EF4444;
-    background: rgba(239, 68, 68, 0.15);
-    border-color: rgba(239, 68, 68, 0.3);
-    animation: pulseRed 1.5s infinite;
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+    animation: pulse 2s infinite;
+  }
+
+  &.think-toggle.active {
+    color: #8B5CF6;
+    background: rgba(139, 92, 246, 0.1);
+    border-color: rgba(139, 92, 246, 0.2);
   }
 }
 

@@ -10,6 +10,33 @@
       </div>
       }
 
+      @if (message.thinkingContent || message.isThinking) {
+        <div class="thinking-block" [class.is-thinking]="message.isThinking">
+          <button class="thinking-header" (click)="isThinkingExpanded.set(!isThinkingExpanded())">
+            <div class="thinking-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.73-2.73 2.5 2.5 0 0 1-1.31-4.21A2.5 2.5 0 0 1 2 9.5 2.5 2.5 0 0 1 4.5 7h5zM14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.73-2.73 2.5 2.5 0 0 0 1.31-4.21A2.5 2.5 0 0 0 22 9.5 2.5 2.5 0 0 0 19.5 7h-5z"/>
+              </svg>
+              <span>{{ message.isThinking ? 'Thinking...' : 'Thought Process' }}</span>
+              @if (message.thinkingDuration) {
+                <span class="thinking-time">({{ formatDuration(message.thinkingDuration) }})</span>
+              }
+            </div>
+            @if (!message.isThinking) {
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" [class.rotated]="isThinkingExpanded()">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            } @else {
+              <div class="thinking-shimmer"></div>
+            }
+          </button>
+          
+          @if (isThinkingExpanded() || message.isThinking) {
+            <div class="thinking-content" [innerHTML]="(message.thinkingContent || '') | markdown"></div>
+          }
+        </div>
+      }
+
       @if (message.role === 'assistant') {
       @if (message.content) {
       <div class="markdown-content" [innerHTML]="message.content | markdown"></div>
