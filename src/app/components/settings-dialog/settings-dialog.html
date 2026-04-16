@@ -21,6 +21,12 @@
         </svg>
         Providers
       </button>
+      <button class="tab" [class.active]="activeTab() === 'appearance'" (click)="activeTab.set('appearance')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+        </svg>
+        Appearance
+      </button>
       <button class="tab" [class.active]="activeTab() === 'general'" (click)="activeTab.set('general')">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="3"/>
@@ -359,6 +365,43 @@
         </div>
       }
 
+      @if (activeTab() === 'appearance') {
+        <div class="appearance-content">
+          <div class="settings-group">
+            <label class="setting-label">Accent Color</label>
+            <span class="setting-hint">Choose a color for buttons, icons, and highlights across the app.</span>
+            
+            <div class="theme-grid">
+              @for (preset of themeService.presets; track preset.id) {
+                <button 
+                  class="theme-preset-btn" 
+                  [class.active]="themeService.activeTheme().id === preset.id"
+                  (click)="themeService.setTheme(preset)"
+                  [title]="preset.name"
+                >
+                  <div class="color-preview" [style.background]="preset.gradient">
+                    @if (themeService.activeTheme().id === preset.id) {
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                    }
+                  </div>
+                  <span class="theme-name">{{ preset.name }}</span>
+                </button>
+              }
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <label class="setting-label">Interface Glow</label>
+            <div class="preview-card">
+              <div class="preview-glow"></div>
+              <span>Theme accents will glow with your chosen color.</span>
+            </div>
+          </div>
+        </div>
+      }
+
       @if (activeTab() === 'about') {
         <div class="about-content">
           <div class="about-logo">
@@ -368,15 +411,15 @@
               <path d="M2 12L12 17L22 12" stroke="url(#aboutGrad3)" stroke-width="2"/>
               <defs>
                 <linearGradient id="aboutGrad1" x1="2" y1="2" x2="22" y2="12">
-                  <stop offset="0%" stop-color="#8B5CF6"/>
+                  <stop offset="0%" stop-color="var(--accent-color)"/>
                   <stop offset="100%" stop-color="#06B6D4"/>
                 </linearGradient>
                 <linearGradient id="aboutGrad2" x1="2" y1="17" x2="22" y2="22">
-                  <stop offset="0%" stop-color="#8B5CF6"/>
+                  <stop offset="0%" stop-color="var(--accent-color)"/>
                   <stop offset="100%" stop-color="#06B6D4"/>
                 </linearGradient>
                 <linearGradient id="aboutGrad3" x1="2" y1="12" x2="22" y2="17">
-                  <stop offset="0%" stop-color="#8B5CF6"/>
+                  <stop offset="0%" stop-color="var(--accent-color)"/>
                   <stop offset="100%" stop-color="#06B6D4"/>
                 </linearGradient>
               </defs>

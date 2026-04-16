@@ -6,6 +6,7 @@ import { SettingsDialogComponent } from './components/settings-dialog/settings-d
 import { ToastContainerComponent } from './components/toast-container/toast-container';
 import { ProviderService } from './services/provider.service';
 import { ChatService } from './services/chat.service';
+import { ThemeService } from './services/theme.service';
 
 @Component({
   selector: 'app-root',
@@ -17,6 +18,7 @@ import { ChatService } from './services/chat.service';
 export class App implements OnInit {
   providerService = inject(ProviderService);
   chatService = inject(ChatService);
+  themeService = inject(ThemeService);
 
   showSettings = signal(false);
   sidebarCollapsed = this.chatService.sidebarCollapsed;

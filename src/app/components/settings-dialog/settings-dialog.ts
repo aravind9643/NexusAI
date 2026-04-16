@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ProviderService } from '../../services/provider.service';
 import { ChatService } from '../../services/chat.service';
 import { ToastService } from '../../services/toast.service';
+import { ThemeService } from '../../services/theme.service';
 import { ProviderConfig, PROVIDER_PRESETS } from '../../models/provider.model';
 
 @Component({
@@ -19,8 +20,9 @@ export class SettingsDialogComponent {
   providerService = inject(ProviderService);
   chatService = inject(ChatService);
   toast = inject(ToastService);
+  themeService = inject(ThemeService);
 
-  activeTab = signal<'providers' | 'general' | 'models' | 'analytics' | 'help' | 'about'>('providers');
+  activeTab = signal<'providers' | 'general' | 'models' | 'analytics' | 'help' | 'about' | 'appearance'>('providers');
   pullingModel = signal<string>('');
   pullStatus = signal<string>('');
   pullProgress = signal<number>(0);
@@ -32,6 +34,8 @@ export class SettingsDialogComponent {
   providers = signal<ProviderConfig[]>(
     JSON.parse(JSON.stringify(this.providerService.providers()))
   );
+  
+  initialThemeId = this.themeService.activeTheme().id;
 
   availablePresets = [
     { key: 'ollama', name: 'Ollama (Local)', icon: '🦙' },
@@ -113,6 +117,7 @@ export class SettingsDialogComponent {
   save(): void {
     this.chatService.saveSettings(this.settings());
     this.providerService.saveProviders(this.providers());
+    this.themeService.saveCurrentTheme();
     // Refetch models with updated providers
     this.providerService.fetchAllModels();
     this.toast.success('Settings saved');
@@ -120,6 +125,7 @@ export class SettingsDialogComponent {
   }
 
   cancel(): void {
+    this.themeService.setThemeById(this.initialThemeId);
     this.closed.emit();
   }
 
