@@ -40,12 +40,13 @@ export class ChatViewComponent implements AfterViewChecked {
   openSettingsAction = output<void>({ alias: 'openSettings' });
 
   inputText = signal('');
-  attachedImages = signal<string[]>([]);
+  attachedFiles = signal<{ name: string; type: 'image' | 'text'; data: string }[]>([]);
   modelSearchQuery = signal('');
   showModelSelector = signal(false);
   showChatOptions = signal(false);
   showScrollBottom = signal(false);
   isRecording = signal(false);
+  activePreviewImage = signal<string | null>(null);
   expandedProviders = signal<Set<string>>(new Set());
   shouldScrollToBottom = true;
 
@@ -130,31 +131,41 @@ export class ChatViewComponent implements AfterViewChecked {
       }
     } catch (err) {}
   }
-
   async sendMessage(): Promise<void> {
     const currentText = this.inputText().trim();
-    const currentImages = [...this.attachedImages()];
+    const files = this.attachedFiles();
+    const images = files.filter(f => f.type === 'image').map(f => f.data);
+    const textFiles = files.filter(f => f.type === 'text');
 
-    if (!currentText && currentImages.length === 0) return;
+    if (!currentText && files.length === 0) return;
     if (this.chatService.isGenerating()) return;
+
+    // Compile message content
+    let finalContent = currentText;
+    if (textFiles.length > 0) {
+      textFiles.forEach(tf => {
+        finalContent += `\n\n---\n📎 **${tf.name}**\n\`\`\`\n${tf.data}\n\`\`\`\n---\n`;
+      });
+    }
 
     // Handle Slash Commands
     if (currentText.startsWith('/')) {
       if (this.handleCommand(currentText)) {
         this.inputText.set('');
+        this.attachedFiles.set([]);
         return;
       }
     }
 
     this.inputText.set('');
-    this.attachedImages.set([]);
+    this.attachedFiles.set([]);
     this.shouldScrollToBottom = true;
 
     if (this.messageInput?.nativeElement) {
       this.messageInput.nativeElement.style.height = 'auto';
     }
 
-    await this.chatService.sendMessage(currentText, currentImages);
+    await this.chatService.sendMessage(finalContent, images);
 
     setTimeout(() => {
       this.messageInput?.nativeElement?.focus();
@@ -446,15 +457,20 @@ export class ChatViewComponent implements AfterViewChecked {
       const reader = new FileReader();
       if (file.type.startsWith('image/')) {
         reader.onload = () => {
-          this.attachedImages.update(prev => [...prev, reader.result as string]);
+          this.attachedFiles.update(prev => [...prev, {
+            name: file.name,
+            type: 'image',
+            data: reader.result as string
+          }]);
         };
         reader.readAsDataURL(file);
       } else {
         reader.onload = () => {
-          const content = reader.result as string;
-          const prefix = `\n\n---\n📎 **${file.name}**\n\`\`\`\n${content}\n\`\`\`\n---\n`;
-          this.inputText.update((t) => t + prefix);
-          this.autoResizeInput();
+          this.attachedFiles.update(prev => [...prev, {
+            name: file.name,
+            type: 'text',
+            data: reader.result as string
+          }]);
           this.toast.success(`Attached: ${file.name}`);
         };
         reader.readAsText(file);
@@ -463,7 +479,15 @@ export class ChatViewComponent implements AfterViewChecked {
     input.value = '';
   }
 
-  removeImage(index: number): void {
-    this.attachedImages.update(prev => prev.filter((_, i) => i !== index));
+  removeFile(index: number): void {
+    this.attachedFiles.update(prev => prev.filter((_, i) => i !== index));
+  }
+
+  openPreview(imageUrl: string): void {
+    this.activePreviewImage.set(imageUrl);
+  }
+
+  closePreview(): void {
+    this.activePreviewImage.set(null);
   }
 }

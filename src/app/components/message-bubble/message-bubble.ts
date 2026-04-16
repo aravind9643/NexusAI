@@ -16,6 +16,7 @@ export class MessageBubbleComponent {
   @Input() isLast = false;
   regenerate = output<void>();
   edit = output<void>();
+  previewImage = output<string>();
 
   private toast = inject(ToastService);
 
@@ -28,11 +29,11 @@ export class MessageBubbleComponent {
   handleCopyButtonClick(event: MouseEvent): void {
     const target = event.target as HTMLElement;
     const copyBtn = target.closest('.copy-btn') as HTMLElement;
-    
+
     if (copyBtn && copyBtn.dataset['code']) {
       event.preventDefault();
       event.stopPropagation();
-      
+
       const base64Code = copyBtn.dataset['code'];
       try {
         // Robust way to decode base64 utf-8
@@ -44,14 +45,14 @@ export class MessageBubbleComponent {
 
         navigator.clipboard.writeText(code).then(() => {
           this.toast.success('Code copied!');
-          
+
           // Visual feedback
           const textSpan = copyBtn.querySelector('span');
           if (textSpan) {
             const originalText = textSpan.innerText;
             textSpan.innerText = 'Copied!';
             copyBtn.classList.add('copied');
-            
+
             setTimeout(() => {
               textSpan.innerText = originalText;
               copyBtn.classList.remove('copied');
@@ -82,10 +83,8 @@ export class MessageBubbleComponent {
     return `${min}m ${remainSec}s`;
   }
 
-  openImageFull(url: string): void {
-    const win = window.open();
-    if (win) {
-      win.document.write(`<img src="${url}" style="max-width:100%; height:auto;">`);
-    }
+  openImageFull(url: string, event: Event): void {
+    event.stopPropagation();
+    this.previewImage.emit(url);
   }
 }

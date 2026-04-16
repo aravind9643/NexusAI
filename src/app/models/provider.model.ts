@@ -13,6 +13,11 @@ export interface ProviderConfig {
   preset?: 'ollama' | 'openrouter' | 'openai' | 'groq' | 'custom' | 'web-llm' | 'lmstudio';
 }
 
+export interface ModelCapabilities {
+  vision: boolean;
+  tools: boolean;
+}
+
 export interface ProviderModel {
   id: string;          // model id (e.g. "gemma4:31b-cloud" or "anthropic/claude-3.5-sonnet")
   name: string;        // display name
@@ -21,6 +26,7 @@ export interface ProviderModel {
   size?: string;       // e.g. "Cloud", "4.1 GB"
   paramSize?: string;  // e.g. "31B", "70B"
   contextLength?: number;
+  capabilities?: ModelCapabilities;
 }
 
 // Pre-configured provider presets

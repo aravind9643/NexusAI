@@ -171,7 +171,35 @@ export class ProviderService {
       providerName: provider.name,
       size: this.formatSize(m.size),
       paramSize: this.extractParamSize(m),
+      capabilities: this.detectCapabilities(m.name, m.details?.families)
     }));
+  }
+
+  private detectCapabilities(id: string, families?: string[]): { vision: boolean; tools: boolean } {
+    const lowId = id.toLowerCase();
+    
+    // Heuristic for vision
+    const hasVision = 
+      (families && (families.includes('vision') || families.includes('mllm'))) ||
+      lowId.includes('vision') || 
+      lowId.includes('llava') || 
+      lowId.includes('moondream') || 
+      lowId.includes('minicpm-v') ||
+      lowId.includes('gpt-4o') ||
+      lowId.includes('gpt-4-turbo') ||
+      lowId.includes('claude-3-5') ||
+      lowId.includes('claude-3');
+
+    // Heuristic for tools
+    const hasTools = 
+      lowId.includes('gpt-') || 
+      lowId.includes('claude-') || 
+      lowId.includes('gemini-') ||
+      lowId.includes('mistral-large') ||
+      lowId.includes('qwen') || // newer qwen supports tools
+      lowId.includes('command-r');
+
+    return { vision: !!hasVision, tools: !!hasTools };
   }
 
   // ---- OpenAI-compatible API (OpenRouter, OpenAI, Groq, etc.) ----
@@ -199,7 +227,8 @@ export class ProviderService {
         // For OpenAI-compatible providers, we try to extract param size from ID
         // and show context as well if available
         paramSize: this.extractParamSizeFromId(m.id),
-        size: contextLen ? `${Math.round(contextLen / 1024)}k` : 'Cloud'
+        size: contextLen ? `${Math.round(contextLen / 1024)}k` : 'Cloud',
+        capabilities: this.detectCapabilities(m.id)
       };
     });
   }
@@ -232,12 +261,23 @@ export class ProviderService {
     temperature: number,
     abortSignal?: AbortSignal
   ): AsyncGenerator<{ content: string; done: boolean; stats?: any }> {
+    const formattedMessages = messages.map(msg => {
+      if (msg.images && msg.images.length > 0) {
+        return {
+          role: msg.role,
+          content: msg.content,
+          images: msg.images.map(img => img.includes('base64,') ? img.split('base64,')[1] : img)
+        };
+      }
+      return { role: msg.role, content: msg.content };
+    });
+
     const response = await fetch(`${provider.baseUrl}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model,
-        messages,
+        messages: formattedMessages,
         stream: true,
         options: { temperature },
       }),
@@ -405,7 +445,7 @@ export class ProviderService {
   async chat(
     providerId: string,
     model: string,
-    messages: { role: string; content: string }[],
+    messages: { role: string; content: string; images?: string[] }[],
     temperature: number
   ): Promise<{ content: string; stats?: any }> {
     const provider = this.getProviderById(providerId);
@@ -421,13 +461,29 @@ export class ProviderService {
   private async ollamaChat(
     provider: ProviderConfig,
     model: string,
-    messages: { role: string; content: string }[],
+    messages: { role: string; content: string; images?: string[] }[],
     temperature: number
   ): Promise<{ content: string; stats?: any }> {
+    const formattedMessages = messages.map(msg => {
+      if (msg.images && msg.images.length > 0) {
+        return {
+          role: msg.role,
+          content: msg.content,
+          images: msg.images.map(img => img.includes('base64,') ? img.split('base64,')[1] : img)
+        };
+      }
+      return { role: msg.role, content: msg.content };
+    });
+
     const response = await fetch(`${provider.baseUrl}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, messages, stream: false, options: { temperature } }),
+      body: JSON.stringify({ 
+        model, 
+        messages: formattedMessages, 
+        stream: false, 
+        options: { temperature } 
+      }),
     });
     if (!response.ok) throw new Error(`Ollama error: ${response.statusText}`);
     const data = await response.json();
@@ -444,9 +500,25 @@ export class ProviderService {
   private async openAIChat(
     provider: ProviderConfig,
     model: string,
-    messages: { role: string; content: string }[],
+    messages: { role: string; content: string; images?: string[] }[],
     temperature: number
   ): Promise<{ content: string; stats?: any }> {
+    const formattedMessages = messages.map(msg => {
+      if (msg.images && msg.images.length > 0) {
+        const content: any[] = [{ type: 'text', text: msg.content }];
+        msg.images.forEach(img => {
+          const mimeType = img.startsWith('data:') ? img.split(';')[0].split(':')[1] : 'image/jpeg';
+          const base64 = img.includes('base64,') ? img.split('base64,')[1] : img;
+          content.push({
+            type: 'image_url',
+            image_url: { url: `data:${mimeType};base64,${base64}` }
+          });
+        });
+        return { role: msg.role, content };
+      }
+      return { role: msg.role, content: msg.content };
+    });
+
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (provider.apiKey) {
       headers['Authorization'] = `Bearer ${provider.apiKey}`;
@@ -460,7 +532,7 @@ export class ProviderService {
     const response = await fetch(`${provider.baseUrl}/chat/completions`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ model, messages, temperature }),
+      body: JSON.stringify({ model, messages: formattedMessages, temperature }),
     });
     if (!response.ok) throw new Error(`API error: ${response.statusText}`);
     const data = await response.json();
