@@ -10,7 +10,7 @@ export interface ProviderConfig {
   apiKey: string;
   enabled: boolean;
   // Pre-configured provider presets
-  preset?: 'ollama' | 'openrouter' | 'openai' | 'groq' | 'custom' | 'web-llm';
+  preset?: 'ollama' | 'openrouter' | 'openai' | 'groq' | 'custom' | 'web-llm' | 'lmstudio';
 }
 
 export interface ProviderModel {
@@ -50,6 +50,12 @@ export const PROVIDER_PRESETS: Record<string, Partial<ProviderConfig>> = {
     type: 'web-llm',
     name: 'Local Browser (WebGPU)',
     baseUrl: '',
+    apiKey: '',
+  },
+  lmstudio: {
+    type: 'openai-compatible',
+    name: 'LM Studio',
+    baseUrl: 'http://localhost:1234/v1',
     apiKey: '',
   },
 };

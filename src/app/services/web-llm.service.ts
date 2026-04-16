@@ -11,7 +11,7 @@ export interface WebLLMProgress {
 })
 export class WebLLMService {
   private engine: webllm.MLCEngine | null = null;
-  
+
   isLoading = signal(false);
   loadingProgress = signal(0);
   loadingStatus = signal('');
@@ -42,7 +42,7 @@ export class WebLLMService {
 
     try {
       this.engine = new webllm.MLCEngine();
-      
+
       this.engine.setInitProgressCallback((report: webllm.InitProgressReport) => {
         this.loadingStatus.set(report.text);
         // Extract percentage if possible, or use a heuristic
@@ -85,7 +85,7 @@ export class WebLLMService {
       const content = chunk.choices[0]?.delta?.content || '';
       totalContent += content;
       yield { content, done: false };
-      
+
       if (abortSignal?.aborted) {
         await this.engine.interruptGenerate();
         break;

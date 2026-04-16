@@ -38,6 +38,7 @@ export class SettingsDialogComponent {
     { key: 'openrouter', name: 'OpenRouter', icon: '🌐' },
     { key: 'openai', name: 'OpenAI', icon: '🤖' },
     { key: 'groq', name: 'Groq', icon: '⚡' },
+    { key: 'lmstudio', name: 'LM Studio', icon: '💻' },
     { key: 'custom', name: 'Custom (OpenAI-compatible)', icon: '🔧' },
   ];
 
@@ -68,7 +69,14 @@ export class SettingsDialogComponent {
   async testProvider(provider: ProviderConfig): Promise<void> {
     this.testingProvider.set(provider.id);
     try {
-      if (provider.type === 'ollama') {
+      if (provider.type === 'web-llm') {
+        const hasWebGPU = !!(navigator as any).gpu;
+        if (hasWebGPU) {
+          this.toast.success(`${provider.name}: WebGPU is supported! 🚀`);
+        } else {
+          this.toast.error(`${provider.name}: WebGPU not supported in this browser`);
+        }
+      } else if (provider.type === 'ollama') {
         const res = await fetch(provider.baseUrl);
         if (res.ok) {
           this.toast.success(`${provider.name} connected!`);

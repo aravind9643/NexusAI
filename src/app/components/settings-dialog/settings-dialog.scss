@@ -559,6 +559,27 @@
 }
 
 // Add Provider Section
+.webgpu-status-hint {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(139, 92, 246, 0.05);
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(139, 92, 246, 0.1);
+  margin-top: 4px;
+
+  .hint-icon {
+    font-size: 18px;
+  }
+
+  span:last-child {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.4;
+  }
+}
+
 .add-provider-section {
   margin-top: 8px;
 }

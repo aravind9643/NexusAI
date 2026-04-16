@@ -98,26 +98,33 @@
             </div>
 
             <div class="provider-card-body">
-              <div class="field-row">
-                <label>Base URL</label>
-                <input
-                  type="text"
-                  class="setting-input"
-                  [ngModel]="provider.baseUrl"
-                  (ngModelChange)="updateProviderField(provider.id, 'baseUrl', $event)"
-                  placeholder="https://api.example.com/v1"
-                />
-              </div>
-              @if (provider.type === 'openai-compatible') {
+              @if (provider.type !== 'web-llm') {
                 <div class="field-row">
-                  <label>API Key</label>
+                  <label>Base URL</label>
                   <input
-                    type="password"
+                    type="text"
                     class="setting-input"
-                    [ngModel]="provider.apiKey"
-                    (ngModelChange)="updateProviderField(provider.id, 'apiKey', $event)"
-                    placeholder="sk-..."
+                    [ngModel]="provider.baseUrl"
+                    (ngModelChange)="updateProviderField(provider.id, 'baseUrl', $event)"
+                    placeholder="https://api.example.com/v1"
                   />
+                </div>
+                @if (provider.type === 'openai-compatible' && provider.preset !== 'lmstudio') {
+                  <div class="field-row">
+                    <label>API Key</label>
+                    <input
+                      type="password"
+                      class="setting-input"
+                      [ngModel]="provider.apiKey"
+                      (ngModelChange)="updateProviderField(provider.id, 'apiKey', $event)"
+                      placeholder="sk-..."
+                    />
+                  </div>
+                }
+              } @else {
+                <div class="webgpu-status-hint">
+                  <span class="hint-icon">🚀</span>
+                  <span>Runs natively on your GPU. No configuration required.</span>
                 </div>
               }
             </div>
@@ -307,6 +314,19 @@
               <strong>Mixed Content Note:</strong> If the app is on HTTPS (like Vercel) and Ollama is on HTTP (localhost), 
               your browser will block the request. You must click the <strong>Site Settings (lock icon)</strong> 
               in the URL bar and set <strong>Insecure Content</strong> to <strong>Allow</strong>.
+            </div>
+          </section>
+
+          <section class="help-section">
+            <h3><span class="icon">💻</span> LM Studio</h3>
+            <p>Ensure the Local Server is running and <strong>CORS is enabled</strong>:</p>
+            <ol>
+              <li>Go to the <strong>Local Server</strong> tab in LM Studio.</li>
+              <li>Check the <strong>CORS</strong> setting in the right-hand sidebar (set to "ON" or "*").</li>
+              <li>Restart the server and click <strong>Test</strong> in NexusAI.</li>
+            </ol>
+            <div class="hint-box">
+              Don't forget to load a model in LM Studio before starting the server!
             </div>
           </section>
 
