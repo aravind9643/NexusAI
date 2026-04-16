@@ -1,6 +1,6 @@
 // Provider configuration types
 
-export type ProviderType = 'ollama' | 'openai-compatible';
+export type ProviderType = 'ollama' | 'openai-compatible' | 'web-llm';
 
 export interface ProviderConfig {
   id: string;
@@ -10,7 +10,7 @@ export interface ProviderConfig {
   apiKey: string;
   enabled: boolean;
   // Pre-configured provider presets
-  preset?: 'ollama' | 'openrouter' | 'openai' | 'groq' | 'custom';
+  preset?: 'ollama' | 'openrouter' | 'openai' | 'groq' | 'custom' | 'web-llm';
 }
 
 export interface ProviderModel {
@@ -45,5 +45,11 @@ export const PROVIDER_PRESETS: Record<string, Partial<ProviderConfig>> = {
     type: 'openai-compatible',
     name: 'Groq',
     baseUrl: 'https://api.groq.com/openai/v1',
+  },
+  'web-llm': {
+    type: 'web-llm',
+    name: 'Local Browser (WebGPU)',
+    baseUrl: '',
+    apiKey: '',
   },
 };

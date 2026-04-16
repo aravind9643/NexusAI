@@ -1,5 +1,6 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, inject } from '@angular/core';
 import { ProviderConfig, ProviderModel, ProviderType, PROVIDER_PRESETS } from '../models/provider.model';
+import { WebLLMService } from './web-llm.service';
 
 @Injectable({
   providedIn: 'root',
@@ -11,6 +12,13 @@ export class ProviderService {
   models = signal<ProviderModel[]>([]);
   isLoadingModels = signal<boolean>(false);
   connectionErrors = signal<Record<string, string>>({});
+  
+  private webLLM = inject(WebLLMService);
+
+  constructor() {
+    // Initial fetch
+    this.fetchAllModels();
+  }
 
   enabledProviders = computed(() => this.providers().filter((p) => p.enabled));
 
@@ -21,21 +29,41 @@ export class ProviderService {
 
   private loadProviders(): ProviderConfig[] {
     const stored = localStorage.getItem(this.storageKey);
+    let providers: ProviderConfig[] = [];
+
     if (stored) {
-      return JSON.parse(stored);
+      providers = JSON.parse(stored);
+    } else {
+      // First time defaults
+      providers = [
+        {
+          id: 'ollama-default',
+          type: 'ollama' as ProviderType,
+          name: 'Ollama (Local)',
+          baseUrl: 'http://localhost:11434',
+          apiKey: '',
+          enabled: true,
+          preset: 'ollama',
+        },
+      ];
     }
-    // Default: just Ollama
-    return [
-      {
-        id: 'ollama-default',
-        type: 'ollama' as ProviderType,
-        name: 'Ollama (Local)',
-        baseUrl: 'http://localhost:11434',
+
+    // Migration: Ensure WebLLM is present
+    if (!providers.find(p => p.type === 'web-llm' || p.preset === 'web-llm')) {
+      providers.push({
+        id: 'webllm-default',
+        type: 'web-llm' as ProviderType,
+        name: 'Local Browser (WebGPU)',
+        baseUrl: '',
         apiKey: '',
         enabled: true,
-        preset: 'ollama',
-      },
-    ];
+        preset: 'web-llm',
+      });
+      // Save to persist the migration
+      localStorage.setItem(this.storageKey, JSON.stringify(providers));
+    }
+
+    return providers;
   }
 
   saveProviders(providers: ProviderConfig[]): void {
@@ -79,30 +107,55 @@ export class ProviderService {
 
   async fetchAllModels(): Promise<void> {
     this.isLoadingModels.set(true);
-    const allModels: ProviderModel[] = [];
     const errors: Record<string, string> = {};
 
-    const promises = this.enabledProviders().map(async (provider) => {
-      try {
-        const models = await this.fetchModelsForProvider(provider);
-        allModels.push(...models);
-      } catch (error: any) {
-        errors[provider.id] = error.message || 'Failed to fetch models';
-      }
-    });
+    const availableProviders = this.enabledProviders();
+    console.log('Fetching models for:', availableProviders.map(p => p.name));
 
-    await Promise.all(promises);
-    this.models.set(allModels);
-    this.connectionErrors.set(errors);
-    this.isLoadingModels.set(false);
+    try {
+      const results = await Promise.all(
+        availableProviders.map(async (provider) => {
+          try {
+            if (provider.id === 'webllm-default' || provider.type === 'web-llm') {
+              return this.fetchWebLLMModels(provider);
+            }
+            return await this.fetchModelsForProvider(provider);
+          } catch (error: any) {
+            errors[provider.id] = error.message || 'Failed to fetch models';
+            return [];
+          }
+        })
+      );
+
+      const allFetchedModels = results.flat();
+      this.models.set(allFetchedModels);
+      this.connectionErrors.set(errors);
+    } catch (err) {
+      console.error('Fatal model fetch error:', err);
+    } finally {
+      this.isLoadingModels.set(false);
+    }
   }
 
   async fetchModelsForProvider(provider: ProviderConfig): Promise<ProviderModel[]> {
     if (provider.type === 'ollama') {
       return this.fetchOllamaModels(provider);
+    } else if (provider.type === 'web-llm') {
+      return this.fetchWebLLMModels(provider);
     } else {
       return this.fetchOpenAIModels(provider);
     }
+  }
+
+  private fetchWebLLMModels(provider: ProviderConfig): ProviderModel[] {
+    return this.webLLM.availableModels.map(m => ({
+      id: m.id,
+      name: m.name,
+      providerId: provider.id,
+      providerName: provider.name,
+      size: m.size,
+      paramSize: this.extractParamSizeFromId(m.id)
+    }));
   }
 
   // ---- Ollama API ----
@@ -165,6 +218,8 @@ export class ProviderService {
 
     if (provider.type === 'ollama') {
       yield* this.streamOllamaChat(provider, model, messages, temperature, abortSignal);
+    } else if (provider.type === 'web-llm') {
+      yield* this.webLLM.streamChat(model, messages, temperature, abortSignal);
     } else {
       yield* this.streamOpenAIChat(provider, model, messages, temperature, abortSignal);
     }

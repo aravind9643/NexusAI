@@ -12,6 +12,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ChatService } from '../../services/chat.service';
 import { ProviderService } from '../../services/provider.service';
+import { WebLLMService } from '../../services/web-llm.service';
 import { ToastService } from '../../services/toast.service';
 import { MessageBubbleComponent } from '../message-bubble/message-bubble';
 import { ProviderModel } from '../../models/provider.model';
@@ -27,6 +28,7 @@ import { ChatMessage } from '../../models/chat.model';
 export class ChatViewComponent implements AfterViewChecked {
   chatService = inject(ChatService);
   providerService = inject(ProviderService);
+  webLLM = inject(WebLLMService);
 
   private toast = inject(ToastService);
 
@@ -239,7 +241,7 @@ export class ChatViewComponent implements AfterViewChecked {
   }
 
   getGroupedModels(): { providerName: string; models: ProviderModel[] }[] {
-    const groups: Record<string, { providerName: string; models: ProviderModel[] }> = {};
+    const groups: Record<string, { providerName: string; isWebLLM: boolean; models: ProviderModel[] }> = {};
     const query = this.modelSearchQuery().toLowerCase();
     
     for (const model of this.models()) {
@@ -248,11 +250,21 @@ export class ChatViewComponent implements AfterViewChecked {
       }
       
       if (!groups[model.providerId]) {
-        groups[model.providerId] = { providerName: model.providerName, models: [] };
+        const provider = this.providerService.getProviderById(model.providerId);
+        groups[model.providerId] = { 
+          providerName: model.providerName, 
+          isWebLLM: provider?.type === 'web-llm',
+          models: [] 
+        };
       }
       groups[model.providerId].models.push(model);
     }
-    return Object.values(groups);
+
+    return Object.values(groups).sort((a, b) => {
+      if (a.isWebLLM) return -1;
+      if (b.isWebLLM) return 1;
+      return a.providerName.localeCompare(b.providerName);
+    }) as any[];
   }
 
   toggleProviderGroup(providerId: string, event: Event): void {
