@@ -41,6 +41,7 @@ export class ChatViewComponent implements AfterViewChecked {
   showChatOptions = signal(false);
   showScrollBottom = signal(false);
   isRecording = signal(false);
+  expandedProviders = signal<Set<string>>(new Set());
   shouldScrollToBottom = true;
 
   private recognition: any = null;
@@ -254,10 +255,36 @@ export class ChatViewComponent implements AfterViewChecked {
     return Object.values(groups);
   }
 
+  toggleProviderGroup(providerId: string, event: Event): void {
+    event.stopPropagation();
+    this.expandedProviders.update(prev => {
+      const next = new Set(prev);
+      if (next.has(providerId)) {
+        next.delete(providerId);
+      } else {
+        next.add(providerId);
+      }
+      return next;
+    });
+  }
+
+  isProviderExpanded(providerId: string): boolean {
+    if (this.modelSearchQuery().trim()) return true;
+    return this.expandedProviders().has(providerId);
+  }
+
+  getGroupProviderId(group: any): string {
+    return group.models[0]?.providerId || '';
+  }
+
   toggleModelSelector(): void {
     const isOpening = !this.showModelSelector();
     this.showModelSelector.set(isOpening);
-    if (!isOpening) {
+    if (isOpening) {
+      // Expand all providers by default
+      const providerIds = new Set(this.models().map(m => m.providerId));
+      this.expandedProviders.set(providerIds);
+    } else {
       this.modelSearchQuery.set('');
     }
   }

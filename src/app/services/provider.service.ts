@@ -135,14 +135,20 @@ export class ProviderService {
       throw new Error(`API error: ${response.statusText}`);
     }
     const data = await response.json();
-    return (data.data || []).map((m: any) => ({
-      id: m.id,
-      name: this.formatOpenAIModelName(m.id),
-      providerId: provider.id,
-      providerName: provider.name,
-      contextLength: m.context_length,
-      paramSize: m.context_length ? `${Math.round(m.context_length / 1000)}K ctx` : undefined,
-    }));
+    return (data.data || []).map((m: any) => {
+      const contextLen = m.context_window || m.context_length;
+      return {
+        id: m.id,
+        name: this.formatOpenAIModelName(m.id),
+        providerId: provider.id,
+        providerName: provider.name,
+        contextLength: contextLen,
+        // For OpenAI-compatible providers, we try to extract param size from ID
+        // and show context as well if available
+        paramSize: this.extractParamSizeFromId(m.id),
+        size: contextLen ? `${Math.round(contextLen / 1024)}k` : 'Cloud'
+      };
+    });
   }
 
   // ---- Chat API ----
@@ -428,8 +434,14 @@ export class ProviderService {
 
   private extractParamSize(model: any): string {
     if (model.details?.parameter_size) return model.details.parameter_size;
-    const match = model.name?.match(/(\d+\.?\d*)[bB]/);
-    return match ? `${match[1]}B` : '';
+    return this.extractParamSizeFromId(model.name || model.id) || '';
+  }
+
+  private extractParamSizeFromId(id: string): string | undefined {
+    if (!id) return undefined;
+    // Match patterns like "70b", "8x7b", "405b", "86m"
+    const match = id.match(/(\d+x)?\d+(\.\d+)?[bBmM]/i);
+    return match ? match[0].toUpperCase() : undefined;
   }
 
   private formatOpenAIModelName(id: string): string {
